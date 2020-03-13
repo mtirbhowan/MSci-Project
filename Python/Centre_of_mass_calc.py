@@ -15,11 +15,7 @@ import copy
 
 GPIO.setmode(GPIO.BCM)
 
-def read_from_file( filename ):
-    
-    return
-
-def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False):
+def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False, save_CoM_data = False):
     
     LC_force    = copy.deepcopy( calibrated_values )
     
@@ -140,12 +136,26 @@ def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, 
         view_ax.grid()
         
         plt.show()
+    
+    if save_CoM_data == True:
         
-        
-LCs_num = [1,2,3,4]
+        save_CoM_data(x,y,total_force, mid_times)
+    
+    len(x)
+    len(y)
+    len(total_force)
+    
+    return x, y, total_force, mid_times
+
+
+
+
+
+
 
 if __name__ == '__main__':
+    LCs_num = [1,2,3,4]
     
     LC_force, filtered_values, calibrated_values, mid_times = Load_Cell_Data.take_run( 500, plot_compare_filtered = False, plot_with_times = False, plot_weight_calibrated_data = False)
 
-    calculate_CoM( calibrated_values, mid_times , plot_position_values = True ,plot_position_over_time = True )
+    calculate_CoM( calibrated_values, mid_times , plot_position_values = True ,plot_position_over_time = True , save_CoM_data = True)

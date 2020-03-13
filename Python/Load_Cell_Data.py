@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as sig
 import pandas as pd
-
+import spike_filter
 
 GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
 
@@ -22,22 +22,22 @@ def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
             LC_1 = HX711(dout_pin=21, pd_sck_pin=20)
             LC_1.select_channel('A')
             LCs.append(LC_1)
-            LCs_num.append('1')
+            LCs_num.append(1)
             
         if i == 2:
             LC_2 = HX711(dout_pin=5, pd_sck_pin=0)
             LCs.append(LC_2)
-            LCs_num.append('2')
+            LCs_num.append(2)
             
         if i == 3:
             LC_3 = HX711(dout_pin=13, pd_sck_pin=6)
             LCs.append(LC_3)
-            LCs_num.append('3')
+            LCs_num.append(3)
             
         if i == 4:
             LC_4 = HX711(dout_pin=26 , pd_sck_pin=19 )
             LCs.append(LC_4)
-            LCs_num.append('4')
+            LCs_num.append(4)
     
     if debug_cells == True:
         
@@ -65,17 +65,6 @@ def record_raw_values(number_of_measurements, LCs ):
         post_times .append([])
         raw_values .append([])
         
-    print('\n')
-    print('Starting Recording in: 3')
-    time.sleep(1)
-    for i in range(2):
-        
-        print('                       {}'.format(2-i))
-        time.sleep(1)
-        
-    print('\n')
-    print('Start')
-    
     start_time = time.time()
     
     for j in range(number_of_measurements):
@@ -88,11 +77,31 @@ def record_raw_values(number_of_measurements, LCs ):
 
 
     total_record_time = time.time() - start_time
-    print('\n')
-    print('End Recording')
-    print('\n')
+    
 
     return raw_values, pre_times, post_times, [total_record_time, start_time]
+
+def median_filter_values(raw_values):
+    
+    filtered_values = []
+    
+    for i in range(len(raw_values)):
+        
+        filtered_values.append([])
+        filtered_values[i] = sig.medfilt(raw_values[i],5)
+    
+    return filtered_values
+
+def spike_filter_values(raw_values, df = False, col = False, data_array=True):
+    
+    filtered_values = []
+    
+    for i in range(len(raw_values)):
+        
+        filtered_values.append([])
+        filtered_values[i] = spike_filter.spike_filter(raw_values[i], col = False, data_array=data_array)
+    
+    return filtered_values
 
 def calculate_times(pre_times, post_times, total_and_start ):
     
@@ -136,62 +145,121 @@ def save_raw_to_csv( raw_data, LCs_num, file_name ):
     df.to_csv('/home/pi/Documents/Load cell Testing/{:s}.csv'.format(file_name))
             
 
-def calibrate_values( filtered_values, tare_value, load_cells_to_test ):
-    
-    calibrated_weight = [] # In grams
-    
-    for i in range(len(filtered_values)):
-        
-        tare_calibrated_values  = tare_calibrate( filtered_values[i], tare_value[i] )
-        
-        cooef_calibrated_values = calibrate_from_cooef( tare_calibrated_values, load_cells_to_test[i] )
-              
-        calibrated_weight.append( cooef_calibrated_values )
-        
-    return calibrated_weight
-   
-   
-def calibrate_from_cooef( filtered_values_LC , load_cell_number ):
+def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
     LC_1 = [  93022.3786, 112.6440*1000]
     LC_2 = [ 112752.4543, 114.1429*1000]
     LC_3 = [ -76321.8141, 113.9544*1000]
     LC_4 = [ 230100.9711, 113.3840*1000]
     
-#     LC_1 = [ 0, 1]
-#     LC_2 = [ 0, 1]
-#     LC_3 = [ 0, 1]
-#     LC_4 = [ 0, 1]
-#     
-#     LC_1 = [  93022.3786, 1 ]
-#     LC_2 = [ 112752.4543, 1 ]
-#     LC_3 = [ -76321.8141, 1 ]
-#     LC_4 = [ 230100.9711, 1 ]
-    
-    
     LC_calibration_cooef = [LC_1,LC_2,LC_3,LC_4]
     
-    calibrated_values = []
-    
-    for i in range(len(filtered_values_LC)):
-        
-        weight_gram = (filtered_values_LC[i] - LC_calibration_cooef[load_cell_number-1][0]) / LC_calibration_cooef[load_cell_number-1][1]
-        
-        calibrated_values.append(weight_gram)
-        
-    return calibrated_values
-
-def tare_calibrate( filtered_values, tare_value ):
-    
-    tared = []
+    calibrated_weight = [] # In grams
+ 
+#     print(tare)
+#     print(len(filtered_values))
+#     print(len(filtered_values[0]))
     
     for i in range(len(filtered_values)):
-              
-        tared.append( filtered_values[i] - tare_value ) 
+        
+        calibrated_weight.append([])        
+        
+        for j in range(len(filtered_values[i])):
             
-    return tared
+            subtracted_data = (filtered_values[i][j] - LC_calibration_cooef[load_cells_to_test[i]-1][0] - tare[0][load_cells_to_test[i]-1] )
+            
+            weight_gram = (subtracted_data / LC_calibration_cooef[load_cells_to_test[i]-1][1]) 
+        
+            calibrated_weight[i].append(weight_gram)
+    
+    return calibrated_weight
+   
+   
+def take_tare( LCs, LCs_num , med_filt = False, plot_tare = False):
+    
+    print('Recording Tare in : 3')
+    time.sleep(1)
+    print('                    2')
+    time.sleep(1)
+    print('                    1')
+    time.sleep(1)
+    print('Recording..')
+    
+    raw_values, pre_times, post_times, total_and_start =  record_raw_values( 200, LCs )
+    
+    LC_offsets = [ 93022.3786, 112752.4543, -76321.8141, 230100.9711]
+    
+    tare = [[],[]]
+    
+    filtered_values = []
+    
+    if med_filt == True:
+    
+        for i in range(len(raw_values)):
+            
+            filter_name = ('Median')
+            
+            filtered_values.append(sig.medfilt(raw_values[i],5))
+            
+            tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
+            tare[1].append(np.std   (filtered_values[i]))
+                    
+    else:
+        
+        for i in range(len(raw_values)):
+            
+            filter_name = ('Spike')
+            
+            filtered_values.append(spike_filter.spike_filter(raw_values[i], '0', data_array=True))
+            
+            tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
+            tare[1].append(np.std   (filtered_values[i]))
 
-def take_raw_values( number_of_measurements, debug = False , plot_compare_filtered = False, plot_with_times = False , plot_weight_calibrated_data = False ):
+        
+        
+    print('Tares Recorded: LC1: Default = -32800 , Recorded: {}, '.format(tare[0][0]))
+    print('                LC2: Default =  95200 , Recorded: {}, '.format(tare[0][1]))
+    print('                LC3: Default =  95800 , Recorded: {}, '.format(tare[0][2]))
+    print('                LC4: Default =  87050 , Recorded: {}, '.format(tare[0][3]))
+    
+    time.sleep(1)
+    
+#     print(len(filtered_values))
+#     print(filtered_values)
+    
+    if plot_tare == True:
+        
+        fig, (raw_ax, filtered_ax) = plt.subplots(nrows=2, sharex=True)
+        
+        fig.suptitle('Raw and {} Filtered Data for Tare Data \n With Mean Tare Values and StDevs for each LC'.format(filter_name))
+        
+        for i in range(len(raw_values)):
+            
+            raw_ax.plot(raw_values[i], label= 'LC {}'.format(i+1))
+            raw_ax.hlines(tare[0][i] + LC_offsets[i],0,len(raw_values[i]))
+            raw_ax.hlines(tare[0][i]+tare[1][i] + LC_offsets[i],0,len(raw_values[i]), linestyles='dashed')
+            raw_ax.hlines(tare[0][i]-tare[1][i] + LC_offsets[i],0,len(raw_values[i]), linestyles='dashed')
+            
+            filtered_ax.plot(filtered_values[i], label='LC {}'.format(i+1))
+            filtered_ax.hlines(tare[0][i] + LC_offsets[i],0,len(raw_values[i]))
+            filtered_ax.hlines(tare[0][i]+tare[1][i] + LC_offsets[i],0,len(raw_values[i]), linestyles='dashed')
+            filtered_ax.hlines(tare[0][i]-tare[1][i] + LC_offsets[i],0,len(raw_values[i]), linestyles='dashed')
+        
+        raw_ax.grid()
+        raw_ax.set_ylabel('Counts')
+        
+        filtered_ax.grid()
+        filtered_ax.set_ylabel('Counts')
+        
+        raw_ax.legend()
+        filtered_ax.legend()
+        
+        plt.show()
+    
+    return tare
+    
+
+def take_run( number_of_measurements, use_default_tare = False, med_filt = False, debug = False , plot_compare_filtered = False, plot_with_times = False , plot_weight_calibrated_data = False ):
     
     #######################################################################################################
     ######################################## Setup Load Cells To Read######################################
@@ -222,31 +290,46 @@ def take_raw_values( number_of_measurements, debug = False , plot_compare_filter
 
     ########################################## Tare Measurements ##########################################
     
-    # tare_raw, tare_times, tare_times, tare_total_and_start = record_raw_values( 100 , LCs )
+    if use_default_tare == False:
+        
+        tare = take_tare( LCs, LCs_num, med_filt = med_filt )
     
     ########################################### Run Measurements ##########################################
     
+    print('\n')
+    print('Starting Recording in: 3')
+    time.sleep(1)
+    for i in range(2):
+        
+        print('                       {}'.format(2-i))
+        time.sleep(1)
+        
+    print('\n')
+    print('Start')
+    
     raw_values, pre_times, post_times, total_and_start = record_raw_values( number_of_measurements , LCs )
    
+    print('\n')
+    print('End Recording')
+    print('\n')
     
     ############################## Filter, Caluculate Times, and Calibrate ################################
     
-    filtered_values = []
+    if med_filt == True:
     
-    for i in range(len(raw_values)):
+        filtered_values = median_filter_values(raw_values)
         
-        filtered_values.append([])
-        filtered_values[i] = sig.medfilt(raw_values[i],5)
-    
-    print(len(filtered_values))
+    else:
+        filtered_values = spike_filter_values(raw_values)
     
     ######################################### START HERE ##################################################
     
-    tare = [-32815,95200,95800,87050]
+    if use_default_tare == True:
     
-    # tare = [0,0,0,0]
+        tare = [[-32815,95200,95800,87050],[]]
     
     calibrated_values = calibrate_values( filtered_values, tare, load_cells_to_test_array )
+    
     
     mid_times, measurement_lengths, time_between_data = calculate_times (pre_times, post_times, total_and_start)
     
@@ -367,8 +450,6 @@ def take_raw_values( number_of_measurements, debug = False , plot_compare_filter
         
         plt.show()
         
-      ### Here will be a dank graph with time image of position and force applied to the load cells over time ###
-    
     
     save = input('Save Raw Data to /Load cell Testing/(name).csv? (Y/N): ')
     
@@ -379,10 +460,10 @@ def take_raw_values( number_of_measurements, debug = False , plot_compare_filter
         save_raw_to_csv ( raw_values, LCs_num, save_title )
         
     return raw_values, filtered_values, calibrated_values, mid_times
-        
-    
+
+     
    
 if __name__ == '__main__':
-    take_raw_values ( 1000, plot_compare_filtered = False, plot_with_times = False ,plot_weight_calibrated_data = True)
+    take_run ( 1000, med_filt = True, plot_compare_filtered = True, plot_with_times = True ,plot_weight_calibrated_data = True)
 
 
