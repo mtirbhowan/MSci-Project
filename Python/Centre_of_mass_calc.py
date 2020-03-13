@@ -3,6 +3,10 @@ from hx711 import HX711  # import the class HX711
 import time
 import threading
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Circle, Rectangle
+from matplotlib.collections import PatchCollection
 import numpy as np
 import scipy.signal as sig
 import pandas as pd
@@ -11,7 +15,9 @@ import copy
 
 GPIO.setmode(GPIO.BCM)
 
-
+def read_from_file( filename ):
+    
+    return
 
 def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False):
     
@@ -22,56 +28,124 @@ def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, 
     
     total_force = LC_force[0] + LC_force[1] + LC_force[2] + LC_force[3]
     
-    for i in range(len(LC_force)):
+    x = (LC_force[0]+LC_force[3]) * 180/total_force #top half of RHS scales to mm
+    y = (LC_force[2]+LC_force[3]) * 342/total_force
+    
+    for i in range(len(x)):
         
-        for j in range(len(LC_force[i])):
+        if x[i] >= 227.5 or x[i] <= -46.5:
+            x[i] = np.nan
+            y[i] = np.nan
             
-            if total_force[j] <= 0.01:
-                
-                LC_force[i][j] = np.nan
-    
-    
-    x = (LC_force[0]+LC_force[3]) * 1/total_force
-    y = (LC_force[2]+LC_force[3]) * 1/total_force
+        if y[i] >= 370 or y[i] <= -24:
+            x[i] = np.nan
+            y[i] = np.nan
+
         
+    for i in range(len(total_force)):
+        
+        if total_force[i] <= 0.05:
+                
+                x[i] = np.nan
+                y[i] = np.nan
+      
     if plot_position_values == True:
         
 
-        fig, (force, position ) = plt.subplots(nrows = 2 ,sharex=True)
+        fig = plt.figure(constrained_layout = True)
+        
+        gs = GridSpec( 3,2, figure = fig )
+        
+        all_force_ax   = fig.add_subplot(gs[ 0, 0])
+        total_force_ax = fig.add_subplot(gs[ 1, 0], sharex = all_force_ax )
+        position_ax    = fig.add_subplot(gs[ 2, 0], sharex = all_force_ax )
+        view_ax        = fig.add_subplot(gs[ :,-1])
                 
         for i in range(len(mid_times)):
             
-            force    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
-            force    .scatter( mid_times[i], LC_force[i]     )            
+            all_force_ax    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
+#             all_force_ax    .scatter( mid_times[i], LC_force[i]     )            
         
-        position .scatter( mid_times[0], x   )
-        position .scatter( mid_times[0], y   )
-        position .plot   ( mid_times[0], x ,label = 'X Position'  )
-        position .plot   ( mid_times[0], y ,label = 'Y Position'  )
+#         position_ax .scatter( mid_times[0], x   )
+#         position_ax .scatter( mid_times[0], y   )
+        position_ax .plot   ( mid_times[0], x ,label = 'X Position'  )
+        position_ax .plot   ( mid_times[0], y ,label = 'Y Position'  )
                     
         
-        force    .legend()
-        position .legend()
+        all_force_ax .legend()
+        position_ax  .legend()
         
-        force    .grid()
-        position .grid()
+        all_force_ax .grid()
+        position_ax  .grid()
                 
-        force       .set_title ('Raw Values')
-        force       .set_xlabel('Time (s)'  )
-        force       .set_ylabel('Output (counts)')
+        all_force_ax .set_title ('Force on LCs')
+        all_force_ax .set_xlabel('Time (s)'  )
+        all_force_ax .set_ylabel('Output (counts)')
         
-        position.set_title ('Calibrated Weights')
-        position.set_xlabel('Time (s)'   )
-        position.set_ylabel('Weight (Kg)')
+        position_ax .set_title ('Position with Time')
+        position_ax .set_xlabel('Time (s)'   )
+        position_ax .set_ylabel('Position (mm)')
         
-        plt.show()
-    
-    if plot_position_over_time == True:
+#         print('length')
+#         print(len(total_force))
+#         print(len(mid_times[0]))
+#         
+#         total_force_ax .scatter(mid_times[0], total_force)
+        total_force_ax .plot   (mid_times[0], total_force)
         
-        plt.scatter(x,y)
+        total_force_ax .set_title ('Total Force')
+        total_force_ax .set_xlabel('Time (s)'  )
+        total_force_ax .set_ylabel('Weight (kg)')
+        
+        total_force_ax .grid()
+        
+        viridis = cm.get_cmap('viridis',len(x))
+        time_colours = viridis(np.linspace(0,1,len(x)))
+        
+        LC_positions = [(181.5,0),(0,0),(0,366),(180.5,343)]
+        
+        patches = []
+        
+        for i in range(4):
+            circle= Circle((LC_positions[i]), 10)
+            patches
+        
+        patches.append(Rectangle((-46.5,-24),width = 274, height = 394))
+        
+        colours = (0,0,0,0,1)
+        FP_collection = PatchCollection(patches, cmap = 'jet',alpha = 0.3)
+        FP_collection.set_array(np.array(colours))
+        
+        view_ax.add_collection(FP_collection)
+        
+#         print(total_force)        
+        
+        total_force = np.asarray(total_force)
+        
+        force_plot_scaled = 50*(total_force/np.max(total_force))
+        
+        
+#         print(force_plot_scaled)
+        
+        view_ax.scatter(x,y, s=force_plot_scaled,c=mid_times[0],alpha=0.8,edgecolors='black')
+        
+        view_ax.set_xlabel('X Position (mm)')
+        view_ax.set_ylabel('Y Position (mm)')
+        
+        view_ax.set_xlim(-50,250)
+        view_ax.set_ylim(-30,400)
+        view_ax.axis('equal')
+        
+        view_ax.set_title('Force Plate Centre of Pressure Map')
+        view_ax.grid()
+        
         plt.show()
         
         
 LCs_num = [1,2,3,4]
-LC_force, filtered_values, calibrated_values, mid_times = Load_Cell_Data.take_raw_values( 1000, plot_compare_filtered = False, plot_with_times = False, plot_weight_calibrated_data = False)
-calculate_CoM( calibrated_values, mid_times , plot_position_values = True ,plot_position_over_time = True )
+
+if __name__ == '__main__':
+    
+    LC_force, filtered_values, calibrated_values, mid_times = Load_Cell_Data.take_run( 500, plot_compare_filtered = False, plot_with_times = False, plot_weight_calibrated_data = False)
+
+    calculate_CoM( calibrated_values, mid_times , plot_position_values = True ,plot_position_over_time = True )
