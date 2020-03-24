@@ -142,85 +142,95 @@ def save_raw_to_csv( raw_data, LCs_num, file_name ):
         dataframestep = pd.DataFrame(data = datastep)
         df            = pd.concat((df, dataframestep),axis=1)
     
-    df.to_csv('/home/pi/Documents/Load cell Testing/{:s}.csv'.format(file_name))
+    df.to_csv('/home/pi/Documents/MSci-Project/Data/Raw_Data_Testing/{:s}.csv'.format(file_name))
             
 
 def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
-    LC_1 = [  93022.3786, 112.6440*1000]
-    LC_2 = [ 112752.4543, 114.1429*1000]
-    LC_3 = [ -76321.8141, 113.9544*1000]
-    LC_4 = [ 230100.9711, 113.3840*1000]
+    LC_1 = [  93022.3786, 112.6440*1000/9.807] #calibration coef for counts to Newtons
+    LC_2 = [ 112752.4543, 114.1429*1000/9.807]
+    LC_3 = [ -76321.8141, 113.9544*1000/9.807]
+    LC_4 = [ 230100.9711, 113.3840*1000/9.807]
     
-    LC_calibration_cooef = [LC_1,LC_2,LC_3,LC_4]
+    LC_calibration_coef = [LC_1,LC_2,LC_3,LC_4] #sort to array
     
-    calibrated_weight = [] # In grams
- 
-#     print(tare)
-#     print(len(filtered_values))
-#     print(len(filtered_values[0]))
+    calibrated_force = [] # In Newtons
+    # Next run through number of load cells and calibrate counts to new array
     
     for i in range(len(filtered_values)):
         
-        calibrated_weight.append([])        
+        calibrated_force.append([])        
         
         for j in range(len(filtered_values[i])):
             
-            subtracted_data = (filtered_values[i][j] - LC_calibration_cooef[load_cells_to_test[i]-1][0] - tare[0][load_cells_to_test[i]-1] )
+            subtracted_data = (filtered_values[i][j] - LC_calibration_coef[load_cells_to_test[i]-1][0] - tare[0][load_cells_to_test[i]-1] )
             
-            weight_gram = (subtracted_data / LC_calibration_cooef[load_cells_to_test[i]-1][1]) 
+            force_gram = (subtracted_data / LC_calibration_coef[load_cells_to_test[i]-1][1]) 
         
-            calibrated_weight[i].append(weight_gram)
+            calibrated_force[i].append(force_gram)
     
-    return calibrated_weight
+    return calibrated_force
    
    
-def take_tare( LCs, LCs_num , med_filt = False, plot_tare = False):
+def take_tare( LCs, LCs_num , med_filt = False, plot_tare = False, save_tare = True):
     
-    print('Recording Tare in : 3')
-    time.sleep(1)
-    print('                    2')
-    time.sleep(1)
-    print('                    1')
-    time.sleep(1)
-    print('Recording..')
     
-    raw_values, pre_times, post_times, total_and_start =  record_raw_values( 200, LCs )
+    tare_stds = 10000
+    max_stds  = 1000
     
-    LC_offsets = [ 93022.3786, 112752.4543, -76321.8141, 230100.9711]
-    
-    tare = [[],[]]
-    
-    filtered_values = []
-    
-    if med_filt == True:
-    
-        for i in range(len(raw_values)):
-            
-            filter_name = ('Median')
-            
-            filtered_values.append(sig.medfilt(raw_values[i],5))
-            
-            tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
-            tare[1].append(np.std   (filtered_values[i]))
-                    
-    else:
+    while tare_stds >= max_stds:
         
-        for i in range(len(raw_values)):
+        print('Recording Tare in : 3')
+        time.sleep(1)
+        print('                    2')
+        time.sleep(1)
+        print('                    1')
+        time.sleep(1)
+        print('Recording..')
+        
+        raw_values, pre_times, post_times, total_and_start =  record_raw_values( 200, LCs )
+        
+        start_time = total_and_start[1]    
+    
+        LC_offsets = [ 93022.3786, 112752.4543, -76321.8141, 230100.9711]
+        
+        tare = [[],[]]
+        
+        filtered_values = []
+        
+        if med_filt == True:
+        
+            for i in range(len(raw_values)):
+                
+                filter_name = ('Median')
+                
+                filtered_values.append(sig.medfilt(raw_values[i],5))
+                
+                tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
+                tare[1].append(np.std   (filtered_values[i]))
+                        
+        else:
             
-            filter_name = ('Spike')
-            
-            filtered_values.append(spike_filter.spike_filter(raw_values[i], '0', data_array=True))
-            
-            tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
-            tare[1].append(np.std   (filtered_values[i]))
+            for i in range(len(raw_values)):
+                
+                filter_name = ('Spike')
+                
+                filtered_values.append(spike_filter.spike_filter(raw_values[i], 0, data_array = True))
+                
+                tare[0].append(np.mean  (filtered_values[i]) - LC_offsets[i])
+                tare[1].append(np.std   (filtered_values[i]))
 
+        tare_stds = np.sum(tare[1])
         
-        
-    print('Tares Recorded: LC1: Default = -32800 , Recorded: {}, '.format(tare[0][0]))
-    print('                LC2: Default =  95200 , Recorded: {}, '.format(tare[0][1]))
-    print('                LC3: Default =  95800 , Recorded: {}, '.format(tare[0][2]))
-    print('                LC4: Default =  87050 , Recorded: {}, '.format(tare[0][3]))
+        print('Tare Stds = {}'.format(tare[1]))
+        print('Summed Tare stds = {}'.format(tare_stds))
+    
+    Default_Tares = [-32800,95200,95800,87050]
+    
+    for i in range(len(LCs_num)):
+        print('Tares Recorded: LC1: Default = {} , Recorded: {}, '.format(Default_Tares[i],tare[0][i]))
+    
+
     
     time.sleep(1)
     
@@ -256,10 +266,33 @@ def take_tare( LCs, LCs_num , med_filt = False, plot_tare = False):
         
         plt.show()
     
+    start_time_date = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(start_time))
+    
+    if save_tare == True:
+    
+        tare_title = 'TARE_'+ start_time_date
+        save_tare_to_csv(tare, tare_title, LCs_num)
+    
     return tare
     
 
-def take_run( number_of_measurements, use_default_tare = False, med_filt = False, debug = False , plot_compare_filtered = False, plot_with_times = False , plot_weight_calibrated_data = False ):
+def save_tare_to_csv(tare, tare_title, LCs_num):
+
+    save_location = '/home/pi/Documents/MSci-Project/Data/Tares/'
+    
+    d  = {}
+    df = pd.DataFrame(data=d)
+    
+    for i in range(len(tare[0])):
+        
+        datastep      = { 'Tare Count Load Cell {}'.format( str( LCs_num[i] ) ): [tare[0][i]], 'Tare Stds Load Cell {}'.format( str( LCs_num[i]) ) : [tare[1][i]] }
+        
+        dataframestep = pd.DataFrame(data = datastep)
+        df            = pd.concat((df, dataframestep),axis=1)
+    
+    df.to_csv(save_location + '{:s}.csv'.format(tare_title))
+
+def take_run( number_of_measurements, use_default_tare = False, med_filt = False, debug = False , plot_compare_filtered = False, plot_with_times = False , plot_force_calibrated_data = False ):
     
     #######################################################################################################
     ######################################## Setup Load Cells To Read######################################
@@ -421,7 +454,7 @@ def take_run( number_of_measurements, use_default_tare = False, med_filt = False
         
         plt.show()
     
-    if plot_weight_calibrated_data == True:
+    if plot_force_calibrated_data == True:
         
         fig, (raw_ax, calibrated_ax) = plt.subplots(nrows = 2 ,sharex=True)
         fig.suptitle('Recorded Raw Values and \n Spike calibrated {} Measurements \n {}s Time'.format( str(number_of_measurements) , str(total_and_start[0]) ) )
@@ -444,9 +477,9 @@ def take_run( number_of_measurements, use_default_tare = False, med_filt = False
         raw_ax       .set_xlabel('Time (s)'  )
         raw_ax       .set_ylabel('Output (counts)')
         
-        calibrated_ax.set_title ('Calibrated Weights')
+        calibrated_ax.set_title ('Calibrated Force')
         calibrated_ax.set_xlabel('Time (s)'   )
-        calibrated_ax.set_ylabel('Weight (Kg)')
+        calibrated_ax.set_ylabel('Force (N)')
         
         plt.show()
         
@@ -464,6 +497,6 @@ def take_run( number_of_measurements, use_default_tare = False, med_filt = False
      
    
 if __name__ == '__main__':
-    take_run ( 1000, med_filt = True, plot_compare_filtered = True, plot_with_times = True ,plot_weight_calibrated_data = True)
+    take_run ( 1000, med_filt = True, plot_compare_filtered = False, plot_with_times = False ,plot_force_calibrated_data = True)
 
 

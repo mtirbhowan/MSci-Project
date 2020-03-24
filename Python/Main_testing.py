@@ -33,7 +33,7 @@ def monitor(LCs, LCnums, tare, plot = False, med_filt = False):
         if med_filt == True:
             filtered_values = LC.median_filter_values(raw_values)
         else:
-            filtered_values = LC.spike_filter_values(raw_values)
+            filtered_values = LC.spike_filter_values(raw_values, 0 , data_array=True)
             
         for i in range(4):
             
@@ -61,6 +61,7 @@ def monitor(LCs, LCnums, tare, plot = False, med_filt = False):
 def record_walk( LCs, LCnums , tare, med_filt= False):
     
     start_time = time.time()
+    timeout_condition = False
     
     raw_values_rec      = [[],[],[],[]]
     pre_times_rec       = [[],[],[],[]]
@@ -81,6 +82,8 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
         
         raw_values, pre_times, post_times, total_and_start = LC.record_raw_values( 50 , LCs )
         
+#         print('Recorded Raw Values; No.={}'.format(len(raw_values[0])))
+        
         for i in range(4):
             
             raw_values_rec[i] += raw_values[i]
@@ -92,7 +95,7 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
         if med_filt == True:
             filtered_values = LC.median_filter_values(raw_values)
         else:
-            filtered_values = LC.spike_filter_values(raw_values, 0)
+            filtered_values = LC.spike_filter_values(raw_values, 0, data_array = True)
         
         for i in range(4):
             
@@ -108,15 +111,16 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
         
     if record_time >= 30:
         print('Walk measurement timeout')
+        timeout_condition = True
     
     print('Finished measurement cycle')
    
-    return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec]
+    return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec], timeout_condition
 
-def save_raw_data_to_file_from_walk( combined_data ):
+def save_raw_data_to_file_from_walk(combined_data, custom_title=False ):
     
     start_time = combined_data[3][1]
-    start_time_date = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(start_time))
+    start_time_date = time.strftime('(%Y-%m-%d)_%H-%M-%S', time.localtime(start_time))
 
     print(start_time_date)
     
@@ -146,8 +150,13 @@ def save_raw_data_to_file_from_walk( combined_data ):
         df = pd.concat((df,dataframestep),axis=1)
     
     
-    save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}.csv'.format(start_time_date) )
-
+    
+    
+    if custom_title == True:
+        custom_title_name = input('Input Custom Title: ')
+        save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}_{}.csv'.format(custom_title_name,start_time_date) )
+    elif custom_title == False:
+        save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}.csv'.format(start_time_date) )
 
 def save_CoM_data(x, y, total_force, mid_times, start_time_date):
     
@@ -157,7 +166,7 @@ def save_CoM_data(x, y, total_force, mid_times, start_time_date):
     print('Length mid_times: {}'.format(len(mid_times)))
     
     
-    data = {'x':x,'y':y,'Weight (g)':total_force, 'Time':mid_times[0]}
+    data = {'x':x,'y':y,'Force (N)':total_force, 'Time':mid_times[0]}
     
     dataframe_to_save = pd.DataFrame(data)
     
@@ -165,14 +174,20 @@ def save_CoM_data(x, y, total_force, mid_times, start_time_date):
 
 
 
-def penguin_data_recording(LCs, LCnums, carryout_CoM=False, save_raw= False, save_CoM=False, plot_CoM = False, plot_tare = False, med_filt = False):
+def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carryout_CoM=False, save_raw= False, save_CoM=False, plot_CoM = False, plot_tare = False, med_filt = False):
     
-    tare_data         = LC.take_tare(LCs, LCnums, plot_tare = plot_tare, med_filt=med_filt)
+    
+    if type(tare) == bool:
+    
+        tare_data = LC.take_tare(LCs, LCnums, plot_tare = plot_tare, med_filt=med_filt)
+    
+    elif type(tare) != bool:
+        
+        tare_data = tare
     
     pre_trigger_data  = monitor(LCs, LCnums, tare_data, med_filt=med_filt)
-    
-    post_trigger_data = record_walk(LCs, LCnums, tare_data, med_filt=med_filt)
-    
+    post_trigger_data, timeout_condition = record_walk(LCs, LCnums, tare_data, med_filt=med_filt)
+
     combined_data   = [[[],[],[],[]],[[],[],[],[]],[[],[],[],[]],[]]
     
     calibrated_data = []
@@ -207,10 +222,40 @@ def penguin_data_recording(LCs, LCnums, carryout_CoM=False, save_raw= False, sav
     
     if save_raw == True:
     
-        save_raw_data_to_file_from_walk( combined_data )
+        save_raw_data_to_file_from_walk( combined_data, custom_title=True )
     
-    return
+    return tare_data, timeout_condition
 
-# while time_passed <= time_limit:
+def continuous_measurement(med_filt = False):
     
-penguin_data_recording(LCs, LCnums, carryout_CoM=False, save_CoM=False, plot_CoM = False, plot_tare = True, med_filt=False)
+    run_number = 0
+    tare_taken = False
+    
+    while run_number >= 0:
+        
+        run_number += 1
+        print('Run Number mod = {}'.format(run_number % 10))
+        
+        if run_number % 30 == 0 and tare_taken == True:
+            print('Tare condition 1')
+            take_tare = True
+        
+        elif tare_taken == False:
+            print('Tare condition 2')
+            take_tare = True
+        
+        else:
+            print('Tare condition 3')
+            take_tare = tare_data
+        
+        print('Take Tare Condition: {}'.format(take_tare))
+        print('Measurement Number: {}'.format(run_number))
+        
+        tare_data, timeout_condition = penguin_data_recording( LCs, LCnums, tare = take_tare, save_raw = True , med_filt = med_filt)
+        tare_taken = True
+        if timeout_condition == True:
+            tare_taken = False
+
+
+continuous_measurement(med_filt = True)
+# penguin_data_recording(LCs, LCnums, carryout_CoM=False, save_CoM=False, plot_CoM = False, plot_tare = True, med_filt=False)

@@ -5,7 +5,7 @@ import pandas as pd
 import Centre_of_mass_calc as CoM
 import Load_Cell_Data as LC
 
-def get_saved_tare( filename, designate_location = False ):
+# def get_saved_tare( filename, designate_location = False ):
     
     
 
@@ -25,7 +25,7 @@ def data_from_file( filename, designate_location = False ):
     filtered_values = LC.median_filter_values(raw_data)
 
     
-    return 
+    return raw_data, pretimes, posttimes, filtered_values
 
 
 def step_locator( x, y, total_force, mid_times , plot = False):

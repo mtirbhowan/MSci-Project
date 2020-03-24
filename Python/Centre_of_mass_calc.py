@@ -91,7 +91,7 @@ def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, 
         
         total_force_ax .set_title ('Total Force')
         total_force_ax .set_xlabel('Time (s)'  )
-        total_force_ax .set_ylabel('Weight (kg)')
+        total_force_ax .set_ylabel('Weight (N)')
         
         total_force_ax .grid()
         
@@ -156,6 +156,6 @@ def calculate_CoM( calibrated_values, mid_times , plot_position_values = False, 
 if __name__ == '__main__':
     LCs_num = [1,2,3,4]
     
-    LC_force, filtered_values, calibrated_values, mid_times = Load_Cell_Data.take_run( 500, plot_compare_filtered = False, plot_with_times = False, plot_weight_calibrated_data = False)
+    LC_force, filtered_values, calibrated_values, mid_times = Load_Cell_Data.take_run( 500, plot_compare_filtered = False, plot_with_times = False, plot_force_calibrated_data = False)
 
     calculate_CoM( calibrated_values, mid_times , plot_position_values = True ,plot_position_over_time = True , save_CoM_data = True)

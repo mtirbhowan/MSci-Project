@@ -26,9 +26,11 @@ def spike_filter(df, col, filter_param1=-400000, filter_param2=-40000, data_arra
 
     elif data_array == False:
         
-        y = df
-
+        y = df[col]
+        
     # replace FALSEs with NaNs
+    
+    print(len(y))
     
     y = y.replace(to_replace='False', value=np.nan).map(float)
     
