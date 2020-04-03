@@ -13,6 +13,8 @@ from pandas import read_csv
 from Spike_filter import spike_filter
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.integrate import simps
+from scipy.signal import find_peaks
 
 def open_raw(raw_data_file,raw_data_dir='C:\\Users\mtirb\Documents\MSci-Project\Data\Raw Recorded Data'):
     """ Takes raw data filename (as string) and its directory as input(s)
@@ -32,6 +34,20 @@ def open_tare(tare_file,tare_dir='C:\\Users\mtirb\Documents\MSci-Project\Data\Ta
     tares = read_csv(tare_path)
     
     return tares
+
+def filtered_values(raw_data):
+    """ Takes in raw data and performs spike filtering on each of the LC data.
+    
+        Then returns list of these numpy arrays in filtered_vals.
+        
+        Eg. filtered_vals[i] = LC(i+1)_filtered data """
+    LC1_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 1',num_of_filters=2))
+    LC2_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 2',num_of_filters=2))
+    LC3_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 3',num_of_filters=2))
+    LC4_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 4',num_of_filters=2))
+    filtered_vals = [LC1_filtered,LC2_filtered,LC3_filtered,LC4_filtered]
+    
+    return filtered_vals
 
 def post_calibrate_values(filtered_vals, tares):
     """ calibrates values post-processing """
@@ -61,6 +77,42 @@ def post_calibrate_values(filtered_vals, tares):
     
     return calibrated_forces
 
+def peak_positions(total_force_data):
+    
+    """ Uses scipy.signal.find_peaks to find peaks in F(t) curve. 
+        
+        Peaks here signify mid-point in transition from left to right 
+        foot (or vice-versa) """
+    
+    peaks, _ = find_peaks(total_force_data, prominence=1)
+    
+    return peaks
+
+def integrate_simps(total_forces, a, b):
+    """ total_forces: f(t)
+        a: lower integration bound (start of gait cycle)
+        b: upper integration bound (end of gait cycle)
+        """
+    integrand = total_forces[a:b+1]
+    area = simps(integrand,dx=1)
+    
+    return area
+
+def group_forces(calibrated_forces):
+    
+    """ Groups:
+        LC1 and 2 for the forces on the back of the plate
+        LC3 and 4 for the forces on the front of the plate
+        LC1 and 4 for the forces on the left hand side of the plate
+        LC2 and 3 for the forces on the right hand side of the plate. """
+    
+    back_forces = np.add(calibrated_forces[0],calibrated_forces[1])
+    front_forces = np.add(calibrated_forces[2],calibrated_forces[3])
+    left_forces = np.add(calibrated_forces[0],calibrated_forces[3])
+    right_forces = np.add(calibrated_forces[1],calibrated_forces[2])
+    total_forces = np.add(back_forces,front_forces)
+    
+    return total_forces, left_forces, right_forces, back_forces, front_forces
 """
 # Open files
 tares = open_tare('TARE_2020-03-23_22-17-49.csv')
@@ -99,9 +151,63 @@ axs[4].plot(x,right_forces, 'tab:green')
 axs[4].set_title('Right LCs')
 """
 
+raw_data = open_raw('2kg(1).csv', raw_data_dir='C:\\Users\mtirb\Documents\MSci-Project\Data\Raw_Data_Testing')
+tares = open_tare('TARE_2020-03-23_22-17-49.csv')
 
 
 
+LC1_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 1',num_of_filters=2))
+LC2_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 2',num_of_filters=2))
+LC3_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 3',num_of_filters=2))
+LC4_filtered = np.asarray(spike_filter(raw_data, 'Load Cell 4',num_of_filters=2))
+filtered_vals = [LC1_filtered,LC2_filtered,LC3_filtered,LC4_filtered]
+
+calibrated_forces = post_calibrate_values(filtered_vals, tares)
+x = np.linspace(0, len(calibrated_forces[0])-1, len(calibrated_forces[0]))
+
+
+        
+
+    
+back_forces = np.add(calibrated_forces[0],calibrated_forces[1])
+front_forces = np.add(calibrated_forces[2],calibrated_forces[3])
+left_forces = np.add(calibrated_forces[0],calibrated_forces[3])
+right_forces = np.add(calibrated_forces[1],calibrated_forces[2])
+total_forces = np.add(back_forces,front_forces)
+
+# plt.plot(x, total_forces)
+# plt.plot(x, left_forces)
+# plt.plot(x, right_forces)
+# plt.plot(x, back_forces)
+# plt.plot(x, front_forces)
+plt.show()
+
+
+    
+
+int_data = total_forces[293:457+1]
+area = simps(int_data,dx=1)
+mg = area/(len(int_data)-1)
+m = mg/9.81
+print("mass in kilograms is", m, " kg")
+
+
+
+
+
+peaks, _ = find_peaks(total_forces, prominence=1)
+plt.plot(peaks, total_forces[peaks], "xr"); plt.plot(total_forces, 'k')
+plt.show()
+
+
+
+# from matplotlib.patches import Polygon
+# a, b, c, d, e = 222, 293, 370, 457, 536
+# plt.fill_between(x[a:b+1],total_forces[a:b+1],facecolor='lightpink')#,facecolor='crimson')
+# plt.fill_between(x[b:c+1],total_forces[b:c+1],facecolor='lightpink')
+# plt.fill_between(x[c:d+1],total_forces[c:d+1],facecolor='cornflowerblue')
+# plt.fill_between(x[d:e+1],total_forces[d:e+1],facecolor='cornflowerblue')#,facecolor='hotpink')
+# plt.show()
 
 # raw_data_dir = 'C:\\Users\mtirb\Documents\MSci-Project\Data\Raw Recorded Data'
 # raw_data_file = '2020-03-23_22-17-06.csv'
