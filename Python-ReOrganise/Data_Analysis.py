@@ -2,44 +2,145 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as sig
 import pandas as pd
-import Centre_of_mass_calc as CoM
+import Load_Cell_Data as LC
+import time
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Circle, Rectangle
+from matplotlib.collections import PatchCollection
+import copy
+import Data_Load_Save as LS
 import Load_Cell_Data as LC
 
-# def get_saved_tare( filename, designate_location = False ):
+def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False, save_CoP_data = False):
+    
+    LC_force    = copy.deepcopy( calibrated_values )
     
     
+    LC_force = np.asarray(LC_force)
+    
+    total_force = LC_force[0] + LC_force[1] + LC_force[2] + LC_force[3]
+    
+    x = (LC_force[0]+LC_force[3]) * 180/total_force #top half of RHS scales to mm
+    y = (LC_force[2]+LC_force[3]) * 342/total_force
+    
+    for i in range(len(x)):
+        
+        if x[i] >= 227.5 or x[i] <= -46.5:
+            x[i] = np.nan
+            y[i] = np.nan
+            
+        if y[i] >= 370 or y[i] <= -24:
+            x[i] = np.nan
+            y[i] = np.nan
 
-def data_from_file( filename, designate_location = False ):
-    
-    if designate_location == False:
-        data_directory = '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/'
-    
-    file_to_read = data_directory + filename
-    
-    dataframe = pd.read_csv( file_to_read )
-    
-    raw_data  = [dataframe['Raw Data LC1'],dataframe['Raw Data LC2'],dataframe['Raw Data LC3'],dataframe['Raw Data LC4']]
-    pretimes  = [dataframe['Pretimes LC1'],dataframe['Pretimes LC2'],dataframe['Pretimes LC3'],dataframe['Pretimes LC4']]
-    posttimes = [dataframe['Post Times LC1'],dataframe['Post Times LC2'],dataframe['Post Times LC3'],dataframe['Post Times LC4']]
-    
-    filtered_values = LC.median_filter_values(raw_data)
+        
+    for i in range(len(total_force)):
+        
+        if total_force[i] <= 0.05:
+                
+                x[i] = np.nan
+                y[i] = np.nan
+      
+    if plot_position_values == True:
+        
 
+        fig = plt.figure(constrained_layout = True)
+        
+        gs = GridSpec( 3,2, figure = fig )
+        
+        all_force_ax   = fig.add_subplot(gs[ 0, 0])
+        total_force_ax = fig.add_subplot(gs[ 1, 0], sharex = all_force_ax )
+        position_ax    = fig.add_subplot(gs[ 2, 0], sharex = all_force_ax )
+        view_ax        = fig.add_subplot(gs[ :,-1])
+                
+        for i in range(len(mid_times)):
+            
+            all_force_ax    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
+#             all_force_ax    .scatter( mid_times[i], LC_force[i]     )            
+        
+#         position_ax .scatter( mid_times[0], x   )
+#         position_ax .scatter( mid_times[0], y   )
+        position_ax .plot   ( mid_times[0], x ,label = 'X Position'  )
+        position_ax .plot   ( mid_times[0], y ,label = 'Y Position'  )
+                    
+        
+        all_force_ax .legend()
+        position_ax  .legend()
+        
+        all_force_ax .grid()
+        position_ax  .grid()
+                
+        all_force_ax .set_title ('Force on LCs')
+        all_force_ax .set_xlabel('Time (s)'  )
+        all_force_ax .set_ylabel('Output (counts)')
+        
+        position_ax .set_title ('Position with Time')
+        position_ax .set_xlabel('Time (s)'   )
+        position_ax .set_ylabel('Position (mm)')
+        
+#         print('length')
+#         print(len(total_force))
+#         print(len(mid_times[0]))
+#         
+#         total_force_ax .scatter(mid_times[0], total_force)
+        total_force_ax .plot   (mid_times[0], total_force)
+        
+        total_force_ax .set_title ('Total Force')
+        total_force_ax .set_xlabel('Time (s)'  )
+        total_force_ax .set_ylabel('Weight (N)')
+        
+        total_force_ax .grid()
+        
+        viridis = cm.get_cmap('viridis',len(x))
+        time_colours = viridis(np.linspace(0,1,len(x)))
+        
+        LC_positions = [(181.5,0),(0,0),(0,366),(180.5,343)]
+        
+        patches = []
+        
+        for i in range(4):
+            circle= Circle((LC_positions[i]), 10)
+            patches
+        
+        patches.append(Rectangle((-46.5,-24),width = 274, height = 394))
+        
+        colours = (0,0,0,0,1)
+        FP_collection = PatchCollection(patches, cmap = 'jet',alpha = 0.3)
+        FP_collection.set_array(np.array(colours))
+        
+        view_ax.add_collection(FP_collection)
+        
+#         print(total_force)        
+        
+        total_force = np.asarray(total_force)
+        
+        force_plot_scaled = 50*(total_force/np.max(total_force))
+        
+        
+#         print(force_plot_scaled)
+        
+        view_ax.scatter(x,y, s=force_plot_scaled,c=mid_times[0],alpha=0.8,edgecolors='black')
+        
+        view_ax.set_xlabel('X Position (mm)')
+        view_ax.set_ylabel('Y Position (mm)')
+        
+        view_ax.set_xlim(-50,250)
+        view_ax.set_ylim(-30,400)
+        view_ax.axis('equal')
+        
+        view_ax.set_title('Force Plate Centre of Pressure Map')
+        view_ax.grid()
+        
+        plt.show()
     
-    return raw_data, pretimes, posttimes, filtered_values
+    if save_CoP_data == True:
+        
+        LS.save_CoP_data(x,y,total_force, mid_times)
 
+    return x, y, total_force, mid_times
 
-def read_tare_from_file(filename, designate_location = False):
-    
-    if designate_lcation == False:
-        data_directory = '/home/pi/Documents/Msci-Project/Data/Tares/'
-    
-    file_to_read = data_directory + filename
-    
-    df = pd.read_csv( fie_to_read )
-    
-    tare_data = [[df['Tare Count Load Cell 1'],df['Tare Count Load Cell 2'],df['Tare Count Load Cell 3'],df['Tare Count Load Cell 4']],[df['Tare Stds Load Cell 1'],df['Tare Stds Load Cell 2'],df['Tare Stds Load Cell 3'],df['Tare Stds Load Cell 4']]]
-    
-    return tare_data
 
 def step_locator( x, y, total_force, mid_times , plot = False):
     
@@ -106,6 +207,3 @@ def step_locator( x, y, total_force, mid_times , plot = False):
         plt.show()
         
         
-raw_data, pretimes, posttimes = calibrated_data_from_file('2020-03-09 14:51:41.csv')
-step_locator( , plot=True)
-    

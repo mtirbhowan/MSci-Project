@@ -1,21 +1,14 @@
-""" [What this script does and what it can output] """
-
-import RPi.GPIO as GPIO  # import GPIO
-from hx711 import HX711  # import the class HX711
-import time
-import threading
-import matplotlib.pyplot as plt
-import numpy as np
+import numpy
+import matplotliib.pyplot as plt
 import scipy.signal as sig
+import scipy
 import pandas as pd
 import Load_Cell_Data as LC
-import Centre_of_mass_calc as CoM
-
-GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
-
-LCs, LCnums = LC.setup_load_cells()
-trigger_value_counts = 10000
-
+import Data_LoadSave as DLS
+import spike_filter
+import time
+import RPi.GPIO as GPIO  # import GPIO
+from hx711 import HX711
 
 def monitor(LCs, LCnums, tare, plot = False, med_filt = False):
     
@@ -118,65 +111,8 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
     print('Finished measurement cycle')
    
     return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec], timeout_condition
-
-def save_raw_data_to_file_from_walk(combined_data, custom_title=False ):
     
-    start_time = combined_data[3][1]
-    start_time_date = time.strftime('(%Y-%m-%d)_%H-%M-%S', time.localtime(start_time))
-
-    print(start_time_date)
-    
-    data = {}
-    df = pd.DataFrame(data)
-    
-    for i in range(4):
-        datastep = {'Raw Data LC{}'.format(i+1):combined_data[0][i]}
-        
-        dataframestep = pd.DataFrame(datastep)
-        
-        df = pd.concat((df,dataframestep),axis=1)
-    
-    for i in range(4):
-        datastep = {'Pretimes LC{}'.format(i+1):combined_data[1][i]}
-        
-        dataframestep = pd.DataFrame(datastep)
-        
-        df = pd.concat((df,dataframestep),axis=1)
-    
-    for i in range(4):
-        
-        datastep = {'Post Times LC{}'.format(i+1):combined_data[0][i]}
-        
-        dataframestep = pd.DataFrame(datastep)
-        
-        df = pd.concat((df,dataframestep),axis=1)
-    
-    
-    
-    
-    if custom_title == True:
-        custom_title_name = input('Input Custom Title: ')
-        save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}_{}.csv'.format(custom_title_name,start_time_date) )
-    elif custom_title == False:
-        save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}.csv'.format(start_time_date) )
-
-def save_CoM_data(x, y, total_force, mid_times, start_time_date):
-    
-    print('Length x: {}'.format(len(x)))
-    print('Length y: {}'.format(len(y)))
-    print('Length total_force: {}'.format(len(total_force)))
-    print('Length mid_times: {}'.format(len(mid_times)))
-    
-    
-    data = {'x':x,'y':y,'Force (N)':total_force, 'Time':mid_times[0]}
-    
-    dataframe_to_save = pd.DataFrame(data)
-    
-    dataframe_to_save.to_csv('/home/pi/Documents/MSci-Project/Data/Calibrated_Walks_Testing/CoM_{}.csv'.format(start_time_date))
-
-
-
-def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carryout_CoM=False, save_raw= False, save_CoM=False, plot_CoM = False, plot_tare = False, med_filt = False):
+def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
     
     
     if type(tare) == bool:
@@ -211,20 +147,20 @@ def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carry
     
     mid_times, measurement_lengths, time_between_data = LC.calculate_times (combined_data[1], combined_data[2], combined_data[3])
     
-    if carryout_CoM == True:
+    if carryout_CoP == True:
 
-        x, y, total_force, mid_times = CoM.calculate_CoM(calibrated_values, mid_times,plot_position_values=plot_CoM)
+        x, y, total_force, mid_times = DA.calculate_CoP(calibrated_values, mid_times,plot_position_values=plot_CoP)
         
-        if save_CoM == True:
+        if save_CoP == True:
             
             start_time = combined_data[3][1]
             start_time_date = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(start_time))
             
-            save_CoM_data( x, y, total_force, mid_times, start_time_date )
+            DLS.save_CoP_data( x, y, total_force, mid_times, start_time_date )
     
     if save_raw == True:
     
-        save_raw_data_to_file_from_walk( combined_data, custom_title=True )
+        DLS.save_raw_data_to_file_from_walk( combined_data, custom_title=True )
     
     return tare_data, timeout_condition
 
@@ -258,6 +194,3 @@ def continuous_measurement(med_filt = False):
         if timeout_condition == True:
             tare_taken = False
 
-
-continuous_measurement(med_filt = True)
-# penguin_data_recording(LCs, LCnums, carryout_CoM=False, save_CoM=False, plot_CoM = False, plot_tare = True, med_filt=False)

@@ -3,6 +3,7 @@
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 import time
+import threading
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as sig
@@ -11,12 +12,11 @@ import spike_filter
 
 GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
 
-# This designates a pair of GPIO pins on the RPi for each load cell amplifier. One for sending read signal and the other for the digital output from the load cell. 
+
 def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
-    #Some arrays to keep track of designatd load cells. LCs contains the HX711 class objects, and LCs_num is simply a reference of the load cell numbers, used later for setting up functions referring to which load cell is being used.
+   
     LCs     = []
     LCs_num = []
-    # dout_pin is the data output from the load cells, pd_sck_pin is the 'clock' pin - sends read signal to chips.
     
     for i in cells:
         
@@ -40,7 +40,7 @@ def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
             LC_4 = HX711(dout_pin=26 , pd_sck_pin=19 )
             LCs.append(LC_4)
             LCs_num.append(4)
-    #debug mode for testing load cells functions. For more detail on this check the HX711 library or github.com/gandalf/HX711
+    
     if debug_cells == True:
         
         try:
@@ -54,19 +54,13 @@ def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
     
     return LCs, LCs_num
 
-#Records raw digital outputs from given load cells with a specified number of measurements. Also records time stamps before and after each load cell measurement.
-#Used HX711._read() function to take chip measurements
-
 def record_raw_values(number_of_measurements, LCs ):
-    #pre_times  - times before each measurment
-    #post_times - times after each measurement
-    #raw_values - uncalibrated raw digital values from amplifer chips
     
     pre_times  = []
     post_times = []
     raw_values = []
     
-    #First index dimensions are for each load cell. i.e. raw_values = [[data for load cell 1],[data for load cell 2],[data for load cell 3],[data for load cell 4]]
+    
     for i in range(len(LCs)):
         
         pre_times  .append([])
@@ -89,8 +83,6 @@ def record_raw_values(number_of_measurements, LCs ):
 
     return raw_values, pre_times, post_times, [total_record_time, start_time]
 
-#SciPy's median filter function - used for fast simple spike filtering, but not tailored to out expected data spikes. 
-
 def median_filter_values(raw_values):
     
     filtered_values = []
@@ -102,10 +94,8 @@ def median_filter_values(raw_values):
     
     return filtered_values
 
-#Custom Spike Filter and smoothing - calls function from spike_filter.py
-
 def spike_filter_values(raw_values, df = False, col = False, data_array=True):
-    #Due to SciPy, Numpy, and pandas compatibility dataframes were found to be the most simple to use instead of normal Python arrays. In the function an inputted array is converted to a pandas dataframe object - hence leave df=False and col=False and data_array = True for a normal Python array.
+    
     filtered_values = []
     
     for i in range(len(raw_values)):
@@ -115,15 +105,11 @@ def spike_filter_values(raw_values, df = False, col = False, data_array=True):
     
     return filtered_values
 
-#Converts the pre_times, post_times from record_raw_values into time taken for each measurement, the midpoint of each measurment, and the time between measurements, from the start of the recording window.
-
 def calculate_times(pre_times, post_times, total_and_start ):
     
     measurement_lengths = []
     mid_times           = []
     time_between        = []
-    
-    #Same index format for raw_values
     
     for i in range( len( pre_times ) ):
         
@@ -158,7 +144,7 @@ def save_raw_to_csv( raw_values, LCs_num, file_name ):
         df            = pd.concat((df, dataframestep),axis=1)
     
     df.to_csv('/home/pi/Documents/MSci-Project/Data/Raw_Data_Testing/{:s}.csv'.format(file_name))
-            
+
 def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
     LC_1 = [  93022.3786, 112.6440*1000/9.807] #calibration coef for counts to Newtons
@@ -501,4 +487,10 @@ def take_run( number_of_measurements, use_default_tare = False, med_filt = False
         save_raw_to_csv ( raw_values, LCs_num, save_title )
         
     return raw_values, filtered_values, calibrated_values, mid_times
+
+     
+   
+if __name__ == '__main__':
+    take_run ( 1000, med_filt = True, plot_compare_filtered = False, plot_with_times = True ,plot_force_calibrated_data = False)
+
 
