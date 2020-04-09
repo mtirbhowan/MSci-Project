@@ -1,15 +1,15 @@
 """ [What this script does and what it can output] """
-
+import os
 import RPi.GPIO as GPIO  # import GPIO
 from hx711 import HX711  # import the class HX711
 import time
+import datetime
 import threading
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as sig
 import pandas as pd
 import Load_Cell_Data as LC
-import Centre_of_Pressure_Calc as CoP
 import Data_Load_Save as LS
 GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
 
@@ -119,8 +119,10 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
    
     return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec], timeout_condition
 
-def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
+def penguin_data_recording(LCs, LCnums, today, custom_title_per_run = False, custom_title_for_session=False, tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
     
+    if custom_title_for_session == True:
+        custom_title_name = input("Set custom title for set of measurements: ")
     
     if type(tare) == bool:
     
@@ -167,11 +169,20 @@ def penguin_data_recording(LCs, LCnums, custom_title = False,tare = False, carry
     
     if save_raw == True:
     
-        LS.save_raw_data_to_file_from_walk( combined_data, custom_title=True )
-    
+        LS.save_raw_data_to_file_from_walk( combined_data, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session = custom_title_for_session, custom_title_name = custom_title_name)
+
     return tare_data, timeout_condition
 
-def continuous_measurement(med_filt = False):
+def continuous_measurement(med_filt = False, custom_title_per_run = False, custom_title_for_session=False):
+    
+    today = datetime.date.today()
+    today = today.strftime('%d-%m-%Y')
+    
+    if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today)):
+        os.makedirs('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today))
+    
+    if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today)):
+        os.makedirs('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today))
     
     run_number = 0
     tare_taken = False
@@ -196,7 +207,7 @@ def continuous_measurement(med_filt = False):
         print('Take Tare Condition: {}'.format(take_tare))
         print('Measurement Number: {}'.format(run_number))
         
-        tare_data, timeout_condition = penguin_data_recording( LCs, LCnums, tare = take_tare, save_raw = True , med_filt = med_filt)
+        tare_data, timeout_condition = penguin_data_recording( LCs, LCnums, today, custom_title_per_run = False, custom_title_for_session=False,tare = take_tare, save_raw = True , med_filt = med_filt)
         tare_taken = True
         if timeout_condition == True:
             tare_taken = False

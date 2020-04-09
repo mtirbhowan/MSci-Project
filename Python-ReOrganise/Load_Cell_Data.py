@@ -145,20 +145,8 @@ def calculate_times(pre_times, post_times, total_and_start ):
     
     return mid_times, measurement_lengths, time_between
 
-def save_raw_to_csv( raw_values, LCs_num, file_name ):
-   
-    d  = {}
-    df = pd.DataFrame(data=d)
-    
-    for i in range(len(raw_data)):
-        
-        datastep      = { 'Load Cell {}'.format( str( LCs_num[i] ) ): raw_values[i] }
-        
-        dataframestep = pd.DataFrame(data = datastep)
-        df            = pd.concat((df, dataframestep),axis=1)
-    
-    df.to_csv('/home/pi/Documents/MSci-Project/Data/Raw_Data_Testing/{:s}.csv'.format(file_name))
-            
+# Calibrates raw_values to Newtons - using Tare and calibration coeficients
+
 def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
     LC_1 = [  93022.3786, 112.6440*1000/9.807] #calibration coef for counts to Newtons
@@ -170,7 +158,6 @@ def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
     calibrated_force = [] # In Newtons
     # Next run through number of load cells and calibrate counts to new array
-    
     for i in range(len(filtered_values)):
         
         calibrated_force.append([])        

@@ -3,4 +3,4 @@ import Data_Collection as DC
 import Data_Analysis as DA
 import Data_Load_Save as LS
 
-DC.continuous_measurement(med_filt=True)
+DC.continuous_measurement(med_filt=True, custom_title_for_session = True)
