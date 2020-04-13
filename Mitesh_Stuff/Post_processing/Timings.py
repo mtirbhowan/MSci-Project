@@ -17,8 +17,8 @@ len(df) # number of rows
 # plt.show()
 
 """ Creates folder of todays date ONCE and only ONCE"""
-# import os
-# import datetime
+import os
+import datetime
 
 # today = datetime.date.today()
 # today = today.strftime('%d-%m-%Y')
@@ -47,10 +47,10 @@ import os
 import re
 from datetime import datetime
 
-for filename in os.listdir(directory):
+# for filename in os.listdir(directory):
 
-    match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
-    date = datetime.strptime(match.group(), '%Y-%m-%d').date()        
+#     match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
+#     date = datetime.strptime(match.group(), '%Y-%m-%d').date()        
     
-    print(date)
+#     print(date)
     

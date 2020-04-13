@@ -40,9 +40,9 @@ def link_raw_and_tare(raw_file_name, tare_file_name):
     
     # Need header=True when csv file is first created. Need to turn False as 
     # soon as it has been made to stop headers getting added each time
-    with open('Calibration_index.csv', 'a') as f:
+    with open('Calibration_index_{}.csv'.format(), 'a') as f:
         raw_and_tare.to_csv(f, header=False)
-    
+ 
     return
 
 def find_tare_filename(raw_filename):
@@ -80,6 +80,7 @@ with pd.HDFStore(filename) as store:
     
 print(metadata['tare_file'])
 """    
+
 
 #Creating the Second Dataframe using dictionary 
 # raw_and_tare = pd.DataFrame({"raw_file":['raw1.csv'], 
