@@ -15,6 +15,8 @@ import Load_Cell_Data as LC
 
 def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False, save_CoP_data = False):
     
+    LCs_num = [1,2,3,4]
+    
     LC_force    = copy.deepcopy( calibrated_values )
     
     

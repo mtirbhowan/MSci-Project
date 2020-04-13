@@ -21,7 +21,7 @@ def save_raw_to_csv( raw_values, LCs_num, file_name ):
     df.to_csv('/home/pi/Documents/MSci-Project/Data/Raw_Data_Testing/{:s}.csv'.format(file_name))
             
 
-def save_raw_data_to_file_from_walk(combined_data, today, custom_title_per_walk=False, custom_title_for_session=False, custom_title_name = False ):
+def save_raw_data_to_file_from_walk(combined_data, today, custom_title_per_walk=False, custom_title_for_session=False):
     
     start_time = combined_data[3][1]
     start_time_date = time.strftime('(%Y-%m-%d)_%H-%M-%S', time.localtime(start_time))
@@ -53,34 +53,45 @@ def save_raw_data_to_file_from_walk(combined_data, today, custom_title_per_walk=
         
         df = pd.concat((df,dataframestep),axis=1)
     
-    if custom_title_per_run == True:
-        custom_title_name = input('Input Custom Title: ')
-        save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}_{}.csv'.format(today, custom_title_name,start_time_date) )
-        link_raw_and_tare(today, "{}_{}".format(custom_title_name, start_time_date) )
-        
-    elif custom_title == False:
+    
+    if custom_title_per_walk == False and custom_title_for_session == False:
         save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}.csv'.format(today, start_time_date) )
         link_raw_and_tare(today, "{}".format( start_time_date) )
         
-    elif custom_title_for_run == True:
+    elif custom_title_for_session != False:
+        
+        if custom_title_per_walk == True:
+            custom_title_name = input('Input custom title for walk: ')
+            save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}/{}_{}.csv'.format(today, custom_title_for_session, custom_title_name, start_time_date) )
+            link_raw_and_tare("{}/{}/".format(today,custom_title_for_session), "/{}/{}_{}".format(custom_title_for_session, custom_title_name, start_time_date) )
+        
+        elif custom_title_per_walk == False:        
+            save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}/{}.csv'.format(today, custom_title_for_session, start_time_date) )
+            link_raw_and_tare("{}/{}/".format(today,custom_title_for_session), "/{}/{}".format(custom_title_for_session, start_time_date) )
+            
+    elif custom_title_for_session == False and custom_title_per_walk == True:
+        custom_title_name = input('Input custom title for walk: ')
         save_df = df.to_csv( '/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}_{}.csv'.format(today, custom_title_name, start_time_date) )
         link_raw_and_tare(today, "{}_{}".format( custom_title_name, start_time_date) )
 
 def save_tare_to_csv(tare, tare_title, LCs_num):
-
+    
+    print('Called Function')
     save_location = '/home/pi/Documents/MSci-Project/Data/Tares/'
     
     d  = {}
     df = pd.DataFrame(data=d)
     
     for i in range(len(tare[0])):
-        
+        print('Tare Appending')
         datastep      = { 'Tare Count Load Cell {}'.format( str( LCs_num[i] ) ): [tare[0][i]], 'Tare Stds Load Cell {}'.format( str( LCs_num[i]) ) : [tare[1][i]] }
         
         dataframestep = pd.DataFrame(data = datastep)
         df            = pd.concat((df, dataframestep),axis=1)
+        
+    print('Tare Save: {}{}.csv'.format(save_location,tare_title))
     
-    df.to_csv(save_location + '{:s}.csv'.format(tare_title))
+    df.to_csv(save_location + '{}.csv'.format(tare_title))
 
 def data_from_file( filename, designate_location = False ):
     
@@ -129,7 +140,7 @@ def save_CoP_data(x, y, total_force, mid_times, start_time_date):
     dataframe_to_save.to_csv('/home/pi/Documents/MSci-Project/Data/Calibrated_Walks_Testing/CoM_{}.csv'.format(start_time_date))
 
 
-def link_raw_and_tare(today, raw_file_name):
+def link_raw_and_tare(session_location, raw_file_name):
     
     """ AT END OF RUN: needs find_latest_tare() to run first.
         
@@ -137,9 +148,10 @@ def link_raw_and_tare(today, raw_file_name):
         then appends the filenames to the index csv for
         easy viewing """
     
-    tares_directory = '/home/pi/Documents/MSci-Project/Tares/{}'.format(today)
-    
+    tares_directory = '/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(session_location)
+    print(tares_directory)
     list_of_files = glob.glob(tares_directory) # * means all if need specific format then *.csv
+    print(list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
     tare_file_name = os.path.basename(latest_file)
     
@@ -149,7 +161,7 @@ def link_raw_and_tare(today, raw_file_name):
     
     # Need header=True when csv file is first created. Need to turn False as 
     # soon as it has been made to stop headers getting added each time
-    with open('/home/pi/Documents/MSci-Project/Raw Recorded Data/{}/Calibration_index.csv'.format(today), 'a') as f:
+    with open('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/Calibration_index.csv'.format(session_location), 'a') as f:
         raw_and_tare.to_csv(f, header=False)
     
     return

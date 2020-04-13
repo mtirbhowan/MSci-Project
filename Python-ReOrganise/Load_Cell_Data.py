@@ -172,7 +172,7 @@ def calibrate_values( filtered_values, tare, load_cells_to_test ):
     
     return calibrated_force
    
-def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_tare = False, save_tare = True):
+def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_tare = False, save_tare = False):
     
     
     tare_stds = 10000
@@ -264,12 +264,7 @@ def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_ta
     
     start_time_date = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime(start_time))
     
-    if save_tare == True:
-    
-        tare_title = 'TARE_'+ start_time_date
-        save_tare_to_csv(tare, tare_title, LCs_num)
-    
-    return tare
+    return tare, start_time_date
 
 def save_tare_to_csv(tare, tare_title, LCs_num):
 

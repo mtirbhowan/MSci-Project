@@ -11,13 +11,14 @@ import scipy.signal as sig
 import pandas as pd
 import Load_Cell_Data as LC
 import Data_Load_Save as LS
+import Data_Analysis as DA
 GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
 
-LCs, LCnums = LC.setup_load_cells()
+LCs, LC_nums = LC.setup_load_cells()
 trigger_value_counts = 10000
 
 
-def monitor(LCs, LCnums, tare, plot = False, med_filt = False):
+def monitor(LCs, LC_nums, tare, plot = False, med_filt = False):
     
     LC_offsets = [ 93022.3786, 112752.4543, -76321.8141, 230100.9711]
     
@@ -60,7 +61,7 @@ def monitor(LCs, LCnums, tare, plot = False, med_filt = False):
     
     return [raw_values, pre_times, post_times, total_and_start]
 
-def record_walk( LCs, LCnums , tare, med_filt= False):
+def record_walk( LCs, LC_nums , tare, med_filt= False):
     
     start_time = time.time()
     timeout_condition = False
@@ -119,21 +120,30 @@ def record_walk( LCs, LCnums , tare, med_filt= False):
    
     return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec], timeout_condition
 
-def penguin_data_recording(LCs, LCnums, today, custom_title_per_run = False, custom_title_for_session=False, tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
-    
-    if custom_title_for_session == True:
-        custom_title_name = input("Set custom title for set of measurements: ")
-    
+def penguin_data_recording(LCs, LC_nums, today, custom_title_per_walk = False, custom_title_for_session = False, tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
+
     if type(tare) == bool:
     
-        tare_data = LC.take_tare(LCs, LCnums, plot_tare = plot_tare, med_filt=med_filt)
+        tare_data, tare_time = LC.take_tare(LCs, LC_nums, plot_tare = plot_tare, med_filt=med_filt)
+        
+        if custom_title_for_session != True:
     
+            tare_name = "{}/{}/{}".format(today,custom_title_for_session,tare_time)
+    
+        elif custom_title_for_session == False:
+            tare_name = "{}/".format(today,tare_time)
+        
+        if save_raw == True:
+            LS.save_tare_to_csv(tare_data, tare_name, LC_nums)
+            print('Saving Tare')
+            
+        
     elif type(tare) != bool:
         
         tare_data = tare
     
-    pre_trigger_data  = monitor(LCs, LCnums, tare_data, med_filt=med_filt)
-    post_trigger_data, timeout_condition = record_walk(LCs, LCnums, tare_data, med_filt=med_filt)
+    pre_trigger_data  = monitor(LCs, LC_nums, tare_data, med_filt=med_filt)
+    post_trigger_data, timeout_condition = record_walk(LCs, LC_nums, tare_data, med_filt=med_filt)
 
     combined_data   = [[[],[],[],[]],[[],[],[],[]],[[],[],[],[]],[]]
     
@@ -151,14 +161,14 @@ def penguin_data_recording(LCs, LCnums, today, custom_title_per_run = False, cus
        
     filtered_data     = LC.median_filter_values(combined_data[0])
         
-    calibrated_values = LC.calibrate_values(filtered_data, tare_data, LCnums)
+    calibrated_values = LC.calibrate_values(filtered_data, tare_data, LC_nums)
     
     
     mid_times, measurement_lengths, time_between_data = LC.calculate_times (combined_data[1], combined_data[2], combined_data[3])
     
     if carryout_CoP == True:
 
-        x, y, total_force, mid_times = CoP.calculate_CoP(calibrated_values, mid_times,plot_position_values=plot_CoP)
+        x, y, total_force, mid_times = DA.calculate_CoP(calibrated_values, mid_times, plot_position_values=plot_CoP)
         
         if save_CoP == True:
             
@@ -169,20 +179,58 @@ def penguin_data_recording(LCs, LCnums, today, custom_title_per_run = False, cus
     
     if save_raw == True:
     
-        LS.save_raw_data_to_file_from_walk( combined_data, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session = custom_title_for_session, custom_title_name = custom_title_name)
+        LS.save_raw_data_to_file_from_walk( combined_data, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session = custom_title_for_session)
 
     return tare_data, timeout_condition
+    
+'''
+def single_measurement(med_file = False, custom_folder = False, custom_title_for_measurement = False)
 
-def continuous_measurement(med_filt = False, custom_title_per_run = False, custom_title_for_session=False):
+    today = datetime.date.today()
+    today = today.strftime('%d-%m-%Y')
+    
+    if custom_folder != False:
+        
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/{}/{}'.format(custom_folder,today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/{}/{}'.format(custom_folder,today))
+    
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/{}/Tares/{}'.format(custom_folder,today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/{}/Tares/{}'.format(custom_folder,today))
+    
+    if custom_folder == False:
+        
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today))
+    
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today))
+        
+    tare_data, timeout_condition = penguin_data_recording( LCs, LC_nums, today, custom_title_per_run = False, custom_title_for_session=False,tare = True, save_raw = True , med_filt = med_filt)
+    tare_taken = True
+
+'''
+
+def continuous_measurement(med_filt = False, carryout_CoP=False, plot_CoP = False, custom_title_per_walk = False, custom_title_for_session=False, save_raw = True):
     
     today = datetime.date.today()
     today = today.strftime('%d-%m-%Y')
     
-    if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today)):
-        os.makedirs('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today))
+    if custom_title_for_session == False:
     
-    if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today)):
-        os.makedirs('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today))
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}'.format(today))
+        
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(today))
+    
+    elif custom_title_for_session != False:
+        custom_title_for_session = input("Set custom title for set of measurements: ")
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}'.format(today,custom_title_for_session)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Raw Recorded Data/{}/{}'.format(today,custom_title_for_session))
+        
+        if not os.path.exists('/home/pi/Documents/MSci-Project/Data/Tares/{}/{}'.format(today,custom_title_for_session)):
+            os.makedirs('/home/pi/Documents/MSci-Project/Data/Tares/{}/{}'.format(today,custom_title_for_session))
+    
     
     run_number = 0
     tare_taken = False
@@ -207,7 +255,7 @@ def continuous_measurement(med_filt = False, custom_title_per_run = False, custo
         print('Take Tare Condition: {}'.format(take_tare))
         print('Measurement Number: {}'.format(run_number))
         
-        tare_data, timeout_condition = penguin_data_recording( LCs, LCnums, today, custom_title_per_run = False, custom_title_for_session=False,tare = take_tare, save_raw = True , med_filt = med_filt)
+        tare_data, timeout_condition = penguin_data_recording( LCs, LC_nums, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session=custom_title_for_session, tare = take_tare, save_raw = save_raw , med_filt = med_filt, carryout_CoP=carryout_CoP, plot_CoP = plot_CoP)
         tare_taken = True
         if timeout_condition == True:
             tare_taken = False
