@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+import datetime
 
 directory = r'C:\Users\mtirb\Documents\MSci-Project\Data\Raw Recorded Data'
 file = '\\2kg_2020-03-23_22-26-51.csv'
@@ -17,9 +19,6 @@ len(df) # number of rows
 # plt.show()
 
 """ Creates folder of todays date ONCE and only ONCE"""
-import os
-import datetime
-
 # today = datetime.date.today()
 # today = today.strftime('%d-%m-%Y')
 # if not os.path.exists('{}'.format(today)):

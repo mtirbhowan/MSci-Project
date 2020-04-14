@@ -94,7 +94,7 @@ def gait_cycle_positions(peaks):
         to total_forces data (i.e numbers possible from 0 to len(total_forces)))
         and groups these up into the bounds for each gait cycle.
         
-        One cycle is from i-th peak, to i-th + 2 peak. Therefore, minimum
+        One cycle is from i-th peak, to (i+2)-th peak. Therefore, minimum
         len(peaks) necessary is 3.
         
         E.g.for N = 5 peaks, returns:[ [peaks[0],peaks[2]], [peaks[1],peaks[3]],
@@ -114,13 +114,13 @@ def gait_cycle_positions(peaks):
     
     return gait_cycle_bounds
 
-def integrate_simps(total_forces, a, b):
+def integrate_simps(total_forces, x, a, b):
     """ total_forces: f(t)
         a: lower integration bound (start of gait cycle)
         b: upper integration bound (end of gait cycle)
         """
     integrand = total_forces[a:b+1]
-    area = simps(integrand,dx=1)
+    area = simps(y=integrand, x=x)
     
     return area
 
@@ -193,11 +193,61 @@ total_forces, left_forces, right_forces, back_forces, front_forces = group_force
 
 x = np.linspace(0, len(total_forces)-1, len(total_forces))
 
+raw_file['Average Timing'] = 0.25*(raw_file['Post Times LC1'] + raw_file['Post Times LC2'] + raw_file['Post Times LC3'] + raw_file['Post Times LC4'])
 
+raw_file['Time_(s)'] = raw_file['Average Timing'] - raw_file['Average Timing'][0] 
+ 
+
+
+
+fig, axs = plt.subplots(2)
+axs[0].plot(x,total_forces,'tab:orange', label='Uncorrected Time')
+#axs[0].set_title('Total Forces')
+axs[0].legend()
+axs[1].plot(raw_file['Time_(s)'], total_forces,'tab:green', label='Time (s)')
+#axs[1].set_title('Left LCs')
+axs[1].legend()
+
+peaks = peak_positions(total_forces)
+
+# a = peaks[0]
+# b = peaks[1]
+# c = peaks[2]
+# d = peaks[3]
+# e = peaks[4]
+
+
+# area = simps(total_forces[d:e+1], raw_file['Time_(s)'][d:e+1])
+# mg = area/(raw_file['Time_(s)'][e+1]-raw_file['Time_(s)'][d])
+# m = mg/9.81
+# print("mass in kilograms is", m, " kg")
+mass=[]
+for i in range(0,3):
+    print(i)
+    a = peaks[i]
+    b = peaks[i+2]
+    area = simps(y=total_forces[a:b+1], x=raw_file['Time_(s)'][a:b+1])
+    mg = area/(raw_file['Time_(s)'][b+1]-raw_file['Time_(s)'][a])
+    m = mg/9.81
+    mass.append(m)
+avg_mass = sum(mass)/len(mass)
+print(avg_mass, 'kg')
+
+# tot_f = np.array(total_forces)
+
+# integra = (9.81/avg_mass)*(tot_f - avg_mass*9.81)
+
+# plt.plot(integra); plt.show()
+
+gait_bounds = gait_cycle_positions(peaks)
+for a, b in gait_bounds:
+    print (a, b)
     
 
-
-
+    
+    
+    
+    
 
 """
 # Open files
