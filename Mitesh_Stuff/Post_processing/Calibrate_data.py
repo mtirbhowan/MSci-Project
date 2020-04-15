@@ -1,3 +1,27 @@
+""" Enter date and this script will, in turn,:
+        - Open the valid data folders in the raw data directory (in this case,
+        valid if  containing 'Kg' in folder name
+        - Find the mass if said folder
+        - Open and read the calibration index for that mass' set of data 
+        (c. index per mass)
+        - Iterate through the valid data files (containing, say '2020' in their
+        name (other possibility is opening calibration_index.csv (not wanted)))
+        - Uses the time in the raw file's name to find the corresponding
+        raw-tare files (whole raw filename doesn't work for some reason)'
+        - Get rid of /directory/ in calibration index's filename because / 
+        needs to be \. Also, adds .csv to end
+        - Since tare file path shares same date and folder name, use same
+        one as used for raw to open up tare file
+        - Calibrate as before,
+        - In some instances, filter function raises ValueError and KeyError,
+        use try, except, else to ignore these cases. Add misbehaving files
+        to a list to make note of and *FIX WHEN YOU HAVE MORE TIME*
+        - Make new dataframe for calibrated values, using raw['time(s)'] to 
+        inititialise new df
+        - Save this df as csv ALL IN THE SAME FOLDER (enough info in 
+        csv file names to ID)
+        """
+        
 import glob
 import os
 import pandas as pd
@@ -72,10 +96,10 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                 # (1) Filter 
                 try: 
                     filtered_values = pp.filter_values(raw_file)
-                except (ValueError):#,KeyError):
-                    VE.append(raw_filename)
+                # except (ValueError):#,KeyError):
+                #     VE.append([folder,raw_filename])
                 except (KeyError):
-                    KE.append(raw_filename)
+                    KE.append([folder,raw_filename])
                 else:
                     # (2) Calibrate
                     calibrated_forces = pp.post_calibrate_values(filtered_values, tare_file)
@@ -94,6 +118,7 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                     # (5) Make new calibrated df with time column from raw df
                     calibrated_data = raw_file[['Time_(s)']].copy()
                     
+                    # (6) Add helpful columns of data
                     calibrated_data['Total_Forces'] = total_forces
                     calibrated_data['Left_Forces'] = left_forces
                     calibrated_data['Right_Forces'] = right_forces
@@ -104,17 +129,19 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                     calibrated_data['LC3'] =  calibratedLC3
                     calibrated_data['LC4'] =  calibratedLC4
                     
-                    
-                    calibrated_filename = '{}kg_({})_{}.csv'.format(mass, date, time)
-                    calibrated_path = os.path.join(calibrated_folder, calibrated_filename)
-                    calibrated_data.to_csv(calibrated_path)
+                    # (7) Save df as csv
+                    # calibrated_filename = '{}kg_({})_{}.csv'.format(mass, date, time)
+                    # calibrated_path = os.path.join(calibrated_folder, calibrated_filename)
+                    # calibrated_data.to_csv(calibrated_path)
                 
                 
 
-
+# Problem with filter function on some data ---> try to debug (see try, except)
+# In the meanwhile, append troublesome files to VE, KE (Value/KeyError)                    
 print(len(VE))
-print(len(KE))
+# print(len(KE))
 
-
+# KE
+# VE
   
         
