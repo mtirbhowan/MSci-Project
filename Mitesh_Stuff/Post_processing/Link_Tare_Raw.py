@@ -51,9 +51,9 @@ def find_tare_filename(raw_filename):
         from calibration index csv """
     
     index_data = pd.read_csv('Calibration_index.csv', index_col=0)
-    tare_filename = index_data[index_data.raw_file.str.contains(str(raw_filename),case=False)]['tare_file'][0]
+    tare_filename = index_data[index_data.raw_file.str.contains(str(raw_filename),case=False)]['2'][0] #['2'] used to be ['tare_ file', header of tarefilename column in df]
     
-    return raw_filename, tare_filename
+    return tare_filename
 
 """
 https://stackoverflow.com/questions/29129095/save-additional-attributes-in-pandas-dataframe
