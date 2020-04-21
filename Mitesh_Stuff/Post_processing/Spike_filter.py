@@ -41,67 +41,78 @@ def spike_filter(df,col,num_of_filters=1,threshold_param = 5E5,filter_param1=-2E
     # group all anomalies
     anomalies = np.sort(np.unique(np.concatenate((spikes_abs, NaNs, too_big))))
     
-    # turn these into NaNs
-    for positions in anomalies:
-        y[positions] = np.nan
- 
-    def interpolate_data(data, outlier_positions):
-        # group up indicies of consecutive anomalies
-        grouped = [list(group) for group in mit.consecutive_groups(outlier_positions)]
-        # do stuff in anomaly indicies depending on if they are single or 
-        # consecutive
-        for sections in grouped:
-            # solo anomalies
-            if len(sections) == 1:
-                index = sections[0]
-                # Replace with average of neighbours
-                data[index] = 0.5*(data[index+1]+data[index-1])
-            # consecutive anomalies
-            else:
-                lower_index = sections[0]
-                upper_index = sections[-1]
-                # take slice of original data for y vals around the NaN values
-                y_temp = np.array(data[lower_index-2: upper_index+2]) 
-                x_temp = np.arange(0,len(y_temp))      
-                # Find NaNs in y_temp (must be a quicker way 
-                #    bc they have already been found)
-                find_NaNs = np.argwhere(np.isnan(y_temp))
-
-                # Get rid of array of arrays
-                find_NaNs = np.concatenate(find_NaNs, axis=0)
-                # Delete NaN rows for x and y 
-                x_temp = np.delete(x_temp,find_NaNs)
-                y_temp = np.delete(y_temp,find_NaNs)
-                # Interpolate stats on slice of data
-                f = interpolate.interp1d(x_temp, y_temp, kind='slinear')   
-                # Calculate NaN replacements by feeding in their x values
-                interpolated_data = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
-                # Finally, replace NaN values with interpolated values            
-                data[lower_index:upper_index+1] = interpolated_data 
-        return data
-    
-    y = interpolate_data(y,anomalies) 
-    
-    if num_of_filters==1:
-
+    # if no anomalies found, do not filter
+    if len(anomalies)==0:
+        
         return y
     
     else:
-
-        # filter again (num_of_filters-1 more times)
-        for i in range(num_of_filters-1):
+    
+        # turn these into NaNs
+        for positions in anomalies:
+            y[positions] = np.nan
+        
+    
             
-            filter_param = filter_param1*(1-(i+1)*0.1)
             
-            delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
-            spikes = np.where(abs(delta_y) > abs(filter_param))[0]
-            
-            for positions in spikes:
-                y[positions] = np.nan
-            
-            y = interpolate_data(y,spikes)
-        print("Number of filters=",i+2)   
-        return y
+        
+        def interpolate_data(data, outlier_positions):
+            # group up indicies of consecutive anomalies
+            grouped = [list(group) for group in mit.consecutive_groups(outlier_positions)]
+            # do stuff in anomaly indicies depending on if they are single or 
+            # consecutive
+            for sections in grouped:
+                # solo anomalies
+                if len(sections) == 1:
+                    index = sections[0]
+                    # Replace with average of neighbours
+                    data[index] = 0.5*(data[index+1]+data[index-1])
+                # consecutive anomalies
+                else:
+                    lower_index = sections[0]
+                    upper_index = sections[-1]
+                    # take slice of original data for y vals around the NaN values
+                    y_temp = np.array(data[lower_index-2: upper_index+2]) 
+                    x_temp = np.arange(0,len(y_temp))      
+                    # Find NaNs in y_temp (must be a quicker way 
+                    #    bc they have already been found)
+                    find_NaNs = np.argwhere(np.isnan(y_temp))
+    
+                    # Get rid of array of arrays
+                    find_NaNs = np.concatenate(find_NaNs, axis=0)
+                    # Delete NaN rows for x and y 
+                    x_temp = np.delete(x_temp,find_NaNs)
+                    y_temp = np.delete(y_temp,find_NaNs)
+                    # Interpolate stats on slice of data
+                    f = interpolate.interp1d(x_temp, y_temp, kind='slinear')   
+                    # Calculate NaN replacements by feeding in their x values
+                    interpolated_data = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
+                    # Finally, replace NaN values with interpolated values            
+                    data[lower_index:upper_index+1] = interpolated_data 
+            return data
+        
+        y = interpolate_data(y,anomalies) 
+        
+        if num_of_filters==1:
+    
+            return y
+        
+        else:
+    
+            # filter again (num_of_filters-1 more times)
+            for i in range(num_of_filters-1):
+                
+                filter_param = filter_param1*(1-(i+1)*0.1)
+                
+                delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+                spikes = np.where(abs(delta_y) > abs(filter_param))[0]
+                
+                for positions in spikes:
+                    y[positions] = np.nan
+                
+                y = interpolate_data(y,spikes)
+            print("Number of filters=",i+2)   
+            return y
 
 """
 df = read_csv('C:\\Users\mtirb\Documents\MSci-Project\Data\Raw_Data_Testing\\2kg(3).csv')
