@@ -11,8 +11,11 @@ import spike_filter
 
 GPIO.setmode(GPIO.BCM)  # set GPIO pin mode to BCM numbering
 
-# This designates a pair of GPIO pins on the RPi for each load cell amplifier. One for sending read signal and the other for the digital output from the load cell. 
 def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
+    '''
+    This designates a pair of GPIO pins on the RPi for each load cell amplifier. 
+    One for sending read signal and the other for the digital output from the load cell. 
+    '''
     #Some arrays to keep track of designatd load cells. LCs contains the HX711 class objects, and LCs_num is simply a reference of the load cell numbers, used later for setting up functions referring to which load cell is being used.
     LCs     = []
     LCs_num = []
@@ -54,10 +57,14 @@ def setup_load_cells( cells = [1,2,3,4] , debug_cells = False ):
     
     return LCs, LCs_num
 
-#Records raw digital outputs from given load cells with a specified number of measurements. Also records time stamps before and after each load cell measurement.
-#Used HX711._read() function to take chip measurements
+
 
 def record_raw_values(number_of_measurements, LCs ):
+    '''
+    Records raw digital outputs from given load cells with a specified number of measurements. 
+    Also records time stamps before and after each load cell measurement.
+    Used HX711._read() function to take chip measurements
+    '''
     #pre_times  - times before each measurment
     #post_times - times after each measurement
     #raw_values - uncalibrated raw digital values from amplifer chips
@@ -89,9 +96,11 @@ def record_raw_values(number_of_measurements, LCs ):
 
     return raw_values, pre_times, post_times, [total_record_time, start_time]
 
-#SciPy's median filter function - used for fast simple spike filtering, but not tailored to out expected data spikes. 
 
 def median_filter_values(raw_values):
+    '''
+    Applys SciPy's median filter function - used for fast simple spike filtering, but not tailored to out expected data spikes. 
+    '''
     
     filtered_values = []
     
@@ -102,9 +111,11 @@ def median_filter_values(raw_values):
     
     return filtered_values
 
-#Custom Spike Filter and smoothing - calls function from spike_filter.py
 
 def spike_filter_values(raw_values, df = False, col = False, data_array=True):
+    '''
+    Custom Spike Filter and smoothing - calls function from spike_filter.py
+    '''
     #Due to SciPy, Numpy, and pandas compatibility dataframes were found to be the most simple to use instead of normal Python arrays. In the function an inputted array is converted to a pandas dataframe object - hence leave df=False and col=False and data_array = True for a normal Python array.
     filtered_values = []
     
@@ -115,10 +126,11 @@ def spike_filter_values(raw_values, df = False, col = False, data_array=True):
     
     return filtered_values
 
-#Converts the pre_times, post_times from record_raw_values into time taken for each measurement, the midpoint of each measurment, and the time between measurements, from the start of the recording window.
 
 def calculate_times(pre_times, post_times, total_and_start ):
-    
+    '''
+    Converts the pre_times, post_times from record_raw_values into time taken for each measurement, the midpoint of each measurment, and the time between measurements, from the start of the recording window.
+    '''
     measurement_lengths = []
     mid_times           = []
     time_between        = []
@@ -145,35 +157,62 @@ def calculate_times(pre_times, post_times, total_and_start ):
     
     return mid_times, measurement_lengths, time_between
 
-# Calibrates raw_values to Newtons - using Tare and calibration coeficients
-
 def calibrate_values( filtered_values, tare, load_cells_to_test ):
+    '''
+    Calibrates raw_values to Newtons - using Tare and calibration coeficients
+    '''
+    DL_e = 100
     
     LC_1 = [  93022.3786, 112.6440*1000/9.807] #calibration coef for counts to Newtons
     LC_2 = [ 112752.4543, 114.1429*1000/9.807]
     LC_3 = [ -76321.8141, 113.9544*1000/9.807]
     LC_4 = [ 230100.9711, 113.3840*1000/9.807]
     
+    LC_1_e = [ 100, (112.6440*1000/9.807)*0.01] #calibration uncertatinty coef for counts to Newtons
+    LC_2_e = [ 100, (114.1429*1000/9.807)*0.01]
+    LC_3_e = [ 100, (113.9544*1000/9.807)*0.01]
+    LC_4_e = [ 100, (113.3840*1000/9.807)*0.01]
+    
+    
     LC_calibration_coef = [LC_1,LC_2,LC_3,LC_4] #sort to array
+    LC_calibration_coef_e = [LC_1_e,LC_2_e,LC_3_e,LC_4_e] 
     
     calibrated_force = [] # In Newtons
+    calibrated_error = []
     # Next run through number of load cells and calibrate counts to new array
     for i in range(len(filtered_values)):
         
         calibrated_force.append([])        
+        calibrated_error.append([])
         
         for j in range(len(filtered_values[i])):
             
-            subtracted_data = (filtered_values[i][j] - LC_calibration_coef[load_cells_to_test[i]-1][0] - tare[0][load_cells_to_test[i]-1] )
+            DL   = filtered_values[i][j]
+            Off  = LC_calibration_coef[load_cells_to_test[i]-1][0]
+            grad = LC_calibration_coef[load_cells_to_test[i]-1][1]
+            T    = tare[0][load_cells_to_test[i]-1]
             
-            force_gram = (subtracted_data / LC_calibration_coef[load_cells_to_test[i]-1][1]) 
+            DL_e   = filtered_values[i][j]
+            Off_e  = LC_calibration_coef_e[load_cells_to_test[i]-1][0]
+            grad_e = LC_calibration_coef_e[load_cells_to_test[i]-1][1]
+            T_e    = tare[1][load_cells_to_test[i]-1]
+            
+            #subtracted_data = (filtered_values[i][j] - LC_calibration_coef[load_cells_to_test[i]-1][0] - tare[0][load_cells_to_test[i]-1] )
+            
+            #force_gram = (subtracted_data / LC_calibration_coef[load_cells_to_test[i]-1][1]) 
+            
+            subtracted_data = (DL - Off - T )
+            
+            force_gram = (subtracted_data / grad ) 
         
             calibrated_force[i].append(force_gram)
     
     return calibrated_force
    
 def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_tare = False, save_tare = False):
-    
+    '''
+    Takes Tare values for load cells
+    '''
     
     tare_stds = 10000
     max_stds  = 1000
@@ -266,21 +305,6 @@ def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_ta
     
     return tare, start_time_date
 
-def save_tare_to_csv(tare, tare_title, LCs_num):
-
-    save_location = '/home/pi/Documents/MSci-Project/Data/Tares/'
-    
-    d  = {}
-    df = pd.DataFrame(data=d)
-    
-    for i in range(len(tare[0])):
-        
-        datastep      = { 'Tare Count Load Cell {}'.format( str( LCs_num[i] ) ): [tare[0][i]], 'Tare Stds Load Cell {}'.format( str( LCs_num[i]) ) : [tare[1][i]] }
-        
-        dataframestep = pd.DataFrame(data = datastep)
-        df            = pd.concat((df, dataframestep),axis=1)
-    
-    df.to_csv(save_location + '{:s}.csv'.format(tare_title))
 
 def take_run( number_of_measurements, use_default_tare = False, med_filt = False, debug = False , plot_compare_filtered = False, plot_with_times = False , plot_force_calibrated_data = False ):
     
