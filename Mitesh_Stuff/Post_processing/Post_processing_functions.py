@@ -103,13 +103,15 @@ def gait_cycle_positions(peaks):
     
     return gait_cycle_bounds
 
-def integrate_simps(total_forces, x, a, b):
-    """ total_forces: f(t)
+def integrate_simps(total_forces, time, a, b):
+    """ total_forces: F
+        time: makes F -> F(t)
         a: lower integration bound (start of gait cycle)
         b: upper integration bound (end of gait cycle)
         """
     integrand = total_forces[a:b+1]
-    area = simps(y=integrand, x=x)
+    time_interval = time[a:b+1]
+    area = simps(y=integrand, x=time_interval)
     
     return area 
 
@@ -166,7 +168,7 @@ def calibrate_timings(raw_file):
                                        raw_file['Post Times LC3'] + 
                                        raw_file['Post Times LC4'])
     # Make it start from t = 0 s
-    raw_file['Time_(s)'] = (raw_file['Average Timing'] - 
+    raw_file['Time'] = (raw_file['Average Timing'] - 
                             raw_file['Average Timing'][0]) 
     
-    return raw_file['Time_(s)']
+    return raw_file['Time']

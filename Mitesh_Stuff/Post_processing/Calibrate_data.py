@@ -1,24 +1,35 @@
 """ Enter date and this script will, in turn,:
-        - Open the valid data folders in the raw data directory (in this case,
+        
+    - Open the valid data folders in the raw data directory (in this case,
         valid if  containing 'Kg' in folder name
-        - Find the mass if said folder
-        - Open and read the calibration index for that mass' set of data 
+        
+    - Find the mass if said folder
+        
+    - Open and read the calibration index for that mass' set of data 
         (c. index per mass)
-        - Iterate through the valid data files (containing, say '2020' in their
+        
+    - Iterate through the valid data files (containing, say '2020' in their
         name (other possibility is opening calibration_index.csv (not wanted)))
-        - Uses the time in the raw file's name to find the corresponding
+        
+    - Uses the time in the raw file's name to find the corresponding
         raw-tare files (whole raw filename doesn't work for some reason)'
-        - Get rid of /directory/ in calibration index's filename because / 
+        
+    - Get rid of /directory/ in calibration index's filename because / 
         needs to be \. Also, adds .csv to end
-        - Since tare file path shares same date and folder name, use same
+        
+    - Since tare file path shares same date and folder name, use same
         one as used for raw to open up tare file
-        - Calibrate as before,
-        - In some instances, filter function raises ValueError and KeyError,
+        
+    - Calibrate as before,
+        
+    - In some instances, filter function raises ValueError and KeyError,
         use try, except, else to ignore these cases. Add misbehaving files
         to a list to make note of and *FIX WHEN YOU HAVE MORE TIME*
-        - Make new dataframe for calibrated values, using raw['time(s)'] to 
+        
+    - Make new dataframe for calibrated values, using raw['time(s)'] to 
         inititialise new df
-        - Save this df as csv ALL IN THE SAME FOLDER (enough info in 
+        
+    - Save this df as csv ALL IN THE SAME FOLDER (enough info in 
         csv file names to ID)
         """
         
@@ -96,8 +107,8 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                 # (1) Filter 
                 try: 
                     filtered_values = pp.filter_values(raw_file)
-                # except (ValueError):#,KeyError):
-                #     VE.append([folder,raw_filename])
+                except (ValueError):#,KeyError):
+                    VE.append([folder,raw_filename])
                 except (KeyError):
                     KE.append([folder,raw_filename])
                 else:
@@ -113,10 +124,10 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                     total_forces, left_forces, right_forces, back_forces, front_forces = pp.group_forces(calibrated_forces)
     
                     # (4) Calibrate timings
-                    raw_file['Time_(s)'] = pp.calibrate_timings(raw_file)
+                    raw_file['Time'] = pp.calibrate_timings(raw_file)
                     
                     # (5) Make new calibrated df with time column from raw df
-                    calibrated_data = raw_file[['Time_(s)']].copy()
+                    calibrated_data = raw_file[['Time']].copy()
                     
                     # (6) Add helpful columns of data
                     calibrated_data['Total_Forces'] = total_forces
@@ -124,24 +135,34 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                     calibrated_data['Right_Forces'] = right_forces
                     calibrated_data['Back_Forces'] = back_forces
                     calibrated_data['Front_Forces'] = front_forces
+                    calibrated_data['Total_Mass'] = total_forces/9.81
+
                     calibrated_data['LC1'] =  calibratedLC1
                     calibrated_data['LC2'] =  calibratedLC2
                     calibrated_data['LC3'] =  calibratedLC3
                     calibrated_data['LC4'] =  calibratedLC4
                     
                     # (7) Save df as csv
-                    # calibrated_filename = '{}kg_({})_{}.csv'.format(mass, date, time)
-                    # calibrated_path = os.path.join(calibrated_folder, calibrated_filename)
-                    # calibrated_data.to_csv(calibrated_path)
+                    calibrated_filename = '{}kg_({})_{}.csv'.format(mass, date, time)
+                    calibrated_path = os.path.join(calibrated_folder, calibrated_filename)
+                    calibrated_data.to_csv(calibrated_path)
                 
                 
 
 # Problem with filter function on some data ---> try to debug (see try, except)
 # In the meanwhile, append troublesome files to VE, KE (Value/KeyError)                    
-print(len(VE))
+#print(len(VE))
 # print(len(KE))
 
 # KE
 # VE
+
+# calibrated_data.Total_Forces.round(3).mode()
+
+# calibrated_data.Total_Forces.plot.hist()
   
-        
+#calibrated_data.plot(x='Time', y='Total_Forces')  
+
+# calibrated_data.Total_Forces.round(2).value_counts()    
+
+#calibrated_data.Total_Forces[calibrated_data.Total_Forces>12].dropna()

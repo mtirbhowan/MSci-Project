@@ -111,7 +111,7 @@ def spike_filter(df,col,num_of_filters=1,threshold_param = 5E5,filter_param1=-2E
                     y[positions] = np.nan
                 
                 y = interpolate_data(y,spikes)
-            print("Number of filters=",i+2)   
+            #print("Number of filters=",i+2)   
             return y
 
 """
