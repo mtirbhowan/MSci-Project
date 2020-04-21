@@ -125,7 +125,7 @@ def read_tare_from_file(filename, designate_location = False):
     
     return tare_data
 
-def save_CoP_data(x, y, total_force, mid_times, start_time_date):
+def save_CoP_data(x, y, total_force, mid_times, start_time_date, custom_title_per_walk = False, custom_title_for_session = False):
     
     print('Length x: {}'.format(len(x)))
     print('Length y: {}'.format(len(y)))
@@ -137,7 +137,7 @@ def save_CoP_data(x, y, total_force, mid_times, start_time_date):
     
     dataframe_to_save = pd.DataFrame(data)
     
-    dataframe_to_save.to_csv('/home/pi/Documents/MSci-Project/Data/Calibrated_Walks_Testing/CoM_{}.csv'.format(start_time_date))
+    dataframe_to_save.to_csv('/home/pi/Documents/MSci-Project/Data/CoP/CoM_{}.csv'.format(start_time_date))
 
 
 def link_raw_and_tare(session_location, raw_file_name):
@@ -150,9 +150,10 @@ def link_raw_and_tare(session_location, raw_file_name):
     
     tares_directory = '/home/pi/Documents/MSci-Project/Data/Tares/{}'.format(session_location)
     print(tares_directory)
-    list_of_files = glob.glob(tares_directory) # * means all if need specific format then *.csv
+    list_of_files = glob.glob(tares_directory + '*.csv') # * means all if need specific format then *.csv
     print(list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
+    print(latest_file)
     tare_file_name = os.path.basename(latest_file)
     
     

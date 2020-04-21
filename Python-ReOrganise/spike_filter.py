@@ -1,70 +1,270 @@
-""" Need to find consecutive spikes and smooth over in between range of this.
-    If solo spike then just replace by average of neighbours."""
-    
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 from pandas import read_csv
+import matplotlib.pyplot as plt
+import numpy as np
 import more_itertools as mit
 from scipy import interpolate
 
-def spike_filter(df, col, filter_param1=-400000, filter_param2=-40000, data_array = False):
-
-    print('Using Spike Filter with p_1 = {}, p_2 = {}'.format(filter_param1, filter_param2))
-    
-    if data_array == True:
+def spike_filter(df,col,num_of_filters=1,threshold_param = 5E5,filter_param1=-2E3,filter_param2=-1E3):
+    """ Params:
+            df = DataFrame (raw data)
+            col = column header for data in df (string)
+            num_of_filters = number of times data gets filtered
+            threshold_param = param used to ID obvious large data
+            filter_params = gradient thresholds for data to remove
+            
+        Returns:
+            y = filtered data
+            
+        Notes: 
+            (1)Includes interpolating function which replaces NaN values
+                with interpolated data.
+            (2)Each filter loop reduces filter_param1 by 10% """
         
-        d = {'0':df}
-        
-        df = pd.DataFrame(data=d)
-       
-        col ='0'
-    
     # data from single column
+    y = df[col]
     
-        y = df[col]
-
-    elif data_array == False:
-        
-        y = df[col]
-        
     # replace FALSEs with NaNs
-    
-    print(len(y))
-    
     y = y.replace(to_replace='False', value=np.nan).map(float)
+
+    # find NaNs
+    NaNs = np.where(np.isnan(y))[0]
+    
+    # identify obvious spikes (tweak threshold_param)
+    too_big = np.where(abs(y)>threshold_param)[0]
     
     # calculate 'gradients'
     delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
     
-    # find outlier where gradient change is too high (1st spikes)
-    spikes = np.where(delta_y < filter_param1)[0]
+    # find high gradients
+    spikes_abs = np.where(abs(delta_y) > abs(filter_param1))[0]
     
-    # find NaNs
-    NaNs = np.where(np.isnan(y))[0]
+    # group all anomalies
+    anomalies = np.sort(np.unique(np.concatenate((spikes_abs, NaNs, too_big))))
     
-    # combine and remove any duplicates (just in case!)
-    anomalies = np.sort(np.unique(np.concatenate((spikes, NaNs))))
-    
-    # replace these with NaNs in original data
+    # turn these into NaNs
     for positions in anomalies:
         y[positions] = np.nan
+ 
+    def interpolate_data(data, outlier_positions):
+        # group up indicies of consecutive anomalies
+        grouped = [list(group) for group in mit.consecutive_groups(outlier_positions)]
+        # do stuff in anomaly indicies depending on if they are single or 
+        # consecutive
+        for sections in grouped:
+            # solo anomalies
+            if len(sections) == 1:
+                index = sections[0]
+                # Replace with average of neighbours
+                data[index] = 0.5*(data[index+1]+data[index-1])
+            # consecutive anomalies
+            else:
+                lower_index = sections[0]
+                upper_index = sections[-1]
+                # take slice of original data for y vals around the NaN values
+                y_temp = np.array(data[lower_index-2: upper_index+2]) 
+                x_temp = np.arange(0,len(y_temp))      
+                # Find NaNs in y_temp (must be a quicker way 
+                #    bc they have already been found)
+                find_NaNs = np.argwhere(np.isnan(y_temp))
+
+                # Get rid of array of arrays
+                find_NaNs = np.concatenate(find_NaNs, axis=0)
+                # Delete NaN rows for x and y 
+                x_temp = np.delete(x_temp,find_NaNs)
+                y_temp = np.delete(y_temp,find_NaNs)
+                # Interpolate stats on slice of data
+                f = interpolate.interp1d(x_temp, y_temp, kind='slinear')   
+                # Calculate NaN replacements by feeding in their x values
+                interpolated_data = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
+                # Finally, replace NaN values with interpolated values            
+                data[lower_index:upper_index+1] = interpolated_data 
+        return data
     
-    # take derivatives from the other end to avoid doing maths with NaNs
-    delta_y2 = np.asarray([y[i]-y[i+1] for i in range(len(y)-1)])
+    y = interpolate_data(y,anomalies) 
     
-    # find the 2nd spikes
-    spikes2 = np.where(delta_y2 < filter_param2)[0]
+    if num_of_filters==1:
+
+        return y
     
-    # replace these with NaNs
-    for positions in spikes2:
-        y[positions] = np.nan
+    else:
+
+        # filter again (num_of_filters-1 more times)
+        for i in range(num_of_filters-1):
+            
+            filter_param = filter_param1*(1-(i+1)*0.1)
+            
+            delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+            spikes = np.where(abs(delta_y) > abs(filter_param))[0]
+            
+            for positions in spikes:
+                y[positions] = np.nan
+            
+            y = interpolate_data(y,spikes)
+        print("Number of filters=",i+2)   
+        return y
+
+"""
+df = read_csv('C:\\Users\mtirb\Documents\MSci-Project\Data\Raw_Data_Testing\\2kg(3).csv')
+col = 'Load Cell 4'
+check = df[col]
+check = check.replace(to_replace='False', value=np.nan).map(float)
+x = np.linspace(0,len(check)-1,len(check))
+# plt.plot(x,check)
+# plt.show()
+
+y1 = spike_filter(df,col,num_of_filters=1)
+# y2 = spike_filter(df,col,num_of_filters=3)
+# y5 = spike_filter(df,col,num_of_filters=5)
+# y8 = spike_filter(df,col,num_of_filters=8)
+
+plt.plot(x,y1)
+# plt.plot(x,y2)
+# plt.plot(x,y5)
+# plt.plot(x,y8)
+plt.show()
+"""
+"""
+#PARAMS
+
+df = read_csv('C:\\Users\mtirb\Documents\MSci-Project\Data\Raw Recorded Data\\2020-03-23_22-17-06.csv')
+col = 'Raw Data LC2' #LC2 AND 3 DONT WORK
+
+
+filter_param1=-2E3
+filter_param2=-1E3 #2000
+threshold_param = 5E5
+
+# data from single column
+y = df[col]
+
+# replace FALSEs with NaNs
+y = y.replace(to_replace='False', value=np.nan).map(float)
+x = np.linspace(0, len(y)-1, len(y))
+
+plt.plot(x,y,'r',label='Original Data')
+plt.legend()
+plt.show()
+
+# identify obvious spikes (tweak threshold_param)
+too_big = np.where(abs(y)>threshold_param)[0]
+
+# find NaNs
+NaNs = np.where(np.isnan(y))[0]
+
+delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+
+spikes_abs = np.where(abs(delta_y) > abs(filter_param1))[0]
+
+anomalies = np.sort(np.unique(np.concatenate((spikes_abs, NaNs, too_big))))
+
+for positions in anomalies:
+    y[positions] = np.nan
+
+
+
+# group up indicies of consecutive anomalies
+grouped = [list(group) for group in mit.consecutive_groups(anomalies)]
+
+# do stuff in anomaly indicies depending on if they are single or 
+# consecutive
+for sections in grouped:
+    print(sections)
+    # solo anomalies
+    if len(sections) == 1:
+        index = sections[0]
+        # Replace with average of neighbours
+        y[index] = 0.5*(y[index+1]+y[index-1])
+    
+    # consecutive anomalies
+    else:
+        lower_index = sections[0]
+        upper_index = sections[-1]
         
-    # combine anomalies (all original spikes and Falses (if params right!))
-    all_anomalies = np.sort(np.concatenate((anomalies,spikes2)))
-    
+        # take slice of original data for y vals around the NaN values
+        y_temp = np.array(y[lower_index-2: upper_index+2]) 
+        x_temp = np.arange(0,len(y_temp))
+
+        
+        # Find NaNs in y_temp (must be a quicker way 
+        #    bc they have already been found)
+        find_NaNs = np.argwhere(np.isnan(y_temp))
+        
+        # Get rid of array of arrays
+        find_NaNs = np.concatenate(find_NaNs, axis=0)
+        
+        # Delete NaN rows for x and y 
+        x_temp = np.delete(x_temp,find_NaNs)
+        y_temp = np.delete(y_temp,find_NaNs)
+        
+        # Interpolate stats on slice of data
+        f = interpolate.interp1d(x_temp, y_temp, kind='slinear')
+        
+        # Calculate NaN replacements by feeding in their x values
+        interpolated_y = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
+
+        # Finally, replace NaN values with interpolated values            
+        y[lower_index:upper_index+1] = interpolated_y 
+#'''
+
+flitered = y
+"""
+
+"""
+# find outlier where gradient change is too high (1st spikes)
+# L to R 
+delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+spikes_abs = np.where(abs(delta_y) > abs(filter_param1))[0]
+spikes = np.where(delta_y < filter_param1)[0]
+
+# t = np.linspace(0, len(delta_y)-1, len(delta_y))
+# #plt.plot(t,delta_y,label='delta_y')
+# #plt.plot(t,abs(delta_y),label='abs')
+# plt.legend()
+# plt.show()
+
+
+#'''
+# plot
+#plt.plot(x,y,'--gv',label='Original Data')
+plt.plot(x,y,'r',label='Original Data')
+plt.legend()
+plt.show()
+#'''
+# calculate 'gradients'
+
+# combine and remove any duplicates (just in case!)
+anomalies = np.sort(np.unique(np.concatenate((spikes, NaNs))))
+"""
+
+#big_and_nans = np.sort(np.unique(np.concatenate((too_big, NaNs)))) 
+
+# replace these with NaNs in original data
+# for positions in too_big:
+#     y[positions] = np.nan
+
+
+
+# find outlier where gradient change is too high (1st spikes)
+# L to R 
+# delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+# #spikes_abs = np.where(abs(delta_y) > abs(filter_param1))[0]
+
+# spikes = np.where(delta_y < filter_param1)[0]
+
+# anomalies = np.sort(np.unique(np.concatenate((too_big,spikes, NaNs))))
+
+# for positions in anomalies:
+#     y[positions] = np.nan
+
+
+
+
+
+"""
+def interpolate_data(data, outlier_positions):
+
     # group up indicies of consecutive anomalies
-    grouped = [list(group) for group in mit.consecutive_groups(all_anomalies)]
+    grouped = [list(group) for group in mit.consecutive_groups(outlier_positions)]
     
     # do stuff in anomaly indicies depending on if they are single or 
     # consecutive
@@ -74,7 +274,7 @@ def spike_filter(df, col, filter_param1=-400000, filter_param2=-40000, data_arra
         if len(sections) == 1:
             index = sections[0]
             # Replace with average of neighbours
-            y[index] = 0.5*(y[index+1]+y[index-1])
+            data[index] = 0.5*(data[index+1]+data[index-1])
         
         # consecutive anomalies
         else:
@@ -82,7 +282,7 @@ def spike_filter(df, col, filter_param1=-400000, filter_param2=-40000, data_arra
             upper_index = sections[-1]
             
             # take slice of original data for y vals around the NaN values
-            y_temp = np.array(y[lower_index-3: upper_index+2]) 
+            y_temp = np.array(data[lower_index-3: upper_index+2]) 
             x_temp = np.arange(0,len(y_temp))
     
             
@@ -98,132 +298,35 @@ def spike_filter(df, col, filter_param1=-400000, filter_param2=-40000, data_arra
             y_temp = np.delete(y_temp,find_NaNs)
             
             # Interpolate stats on slice of data
-            f = interpolate.interp1d(x_temp, y_temp, kind='cubic')
+            f = interpolate.interp1d(x_temp, y_temp, kind='slinear')
             
             # Calculate NaN replacements by feeding in their x values
-            interpolated_y = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
-
+            interpolated_data = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
+    
             # Finally, replace NaN values with interpolated values            
-            y[lower_index:upper_index+1] = interpolated_y 
-            
-    return y
+            data[lower_index:upper_index+1] = interpolated_data 
 
-if __name__ == '__main__':
+    return data
+"""
 
-    LC1 = read_csv('LC1.csv')
-    y = spike_filter(LC1, '0')
+"""
+y = interpolate_data(y,anomalies)
 
-    plt.plot(y)
-    plt.show()
+delta_y = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+spikestwo = np.where(abs(delta_y) > abs(filter_param2))[0]
 
-#''' open files '''
-#LC1 = read_csv('LC1.csv')
-#LC2 = read_csv('LC2.csv')
-#LC3 = read_csv('LC3.csv')
-#LC4 = read_csv('LC4.csv')
-#
-#''' data from single column '''
-#col_data = LC3['72.65']   
-##col_data = LC['72.65']
-#
-#
-#''' replace FALSE s with NaN s (for NaNs)'''
-#z_before = col_data.replace(to_replace='FALSE', value=np.nan).map(float)
-#
-#''' calculate 'gradient' change '''
-## ignore the RuntimeWarning when ecountering NaN values
-#z = abs(deepcopy(z_before))
-#z_der = np.asarray([z.iloc[i+1]-z.iloc[i] for i in range(len(z)-1)])
-#
-#''' find outliers where gradient change is too high (spike) '''
-## mostly works but fails to ID double spike(!)
-## looks at large -ve gradient signifying a spike since all values have had
-## their values modulied
-#spikes_and_more = np.where(z_der < -1000)[0]     
-#
-#''' find NaNs '''
-#NaNs = np.where(np.isnan(z))[0]
-#
-#''' combine and remove any dumplicates '''
-#anomalies = np.sort(np.unique(np.concatenate((spikes_and_more, NaNs))))
-#
-#
-#''' replace with NaN s'''        
-#for positions in anomalies:
-#    z[positions] = np.nan
-#    
-#''' start taking derivatives from other end to manouveur around 
-#    doing maths with NaNs (removes spikes after NaNs/spikes'''
-#x = deepcopy(z) # copy made for checking, can remove
-#z_der2 = np.asarray([x[i]-x[i+1] for i in range(len(x)-1)])
-#
-#''' find 2nd spikes '''
-#spikes2 = np.where(z_der2 < -10000)[0] # change param and look how anom size changes
-#
-#''' replace with NaN s'''
-#for places in spikes2:
-#    x[places] = np.nan
-#
-#''' combine all anomalies '''
-#all_anomalies = np.sort(np.concatenate((anomalies,spikes2)))
-#
-#''' group up indexes of consecutive anomalies '''
-#grouped = [list(group) for group in mit.consecutive_groups(all_anomalies)]
-#    
-#''' do stuff in anomaly indicies depending if they are grouped
-#    or not '''
-#y = deepcopy(x)
-#for sections in grouped:
-##    lower_index = sections[0]
-##    upper_index = sections[-1]
-##    print(x[lower_index - 1], x[upper_index + 1])
-#    if len(sections) == 1:
-#        index = sections[0]
-#        ''' Replace with average of neighbours '''
-#        y[index] = 0.5*(y[index+1]+y[index-1])
-#
-#    else:
-#        lower_index = sections[0]
-#        upper_index = sections[-1]
-#
-#        y_temp = np.array(y[lower_index-3: upper_index+2]) # take slice of data for y vals, need to check how interp1d deals with NaNs  
-#        print(y_temp)
-#        print( '\n')
-#        x_temp = np.arange(0,len(y_temp))
-#
-#        
-#        """ Find NaNs in y_temp (must be a quicker way 
-#            bc they have already been found) """
-#        find_NaNs = np.argwhere(np.isnan(y_temp))
-#        
-#        """  # Get rid of array of arrays """
-#        find_NaNs = np.concatenate(find_NaNs, axis=0)
-#        
-#        """ Delete NaN rows for x and y """
-#        x_temp = np.delete(x_temp,find_NaNs)
-#        
-#        """ Convert y to list now makes it easier to insert interpolated values back
-#         later > y[insert_pos:insert_pos] = interpolated_y """
-#        y_temp = list(np.delete(y_temp,find_NaNs))
-#        
-#        """ Interpolate stats """
-#        f = interpolate.interp1d(x_temp, y_temp, kind='cubic')
-#        
-#        """ Calculate NaN replacements """
-#        interpolated_y = list(f(find_NaNs))   # use interpolation function returned by `interp1d`
-##        print(len(interpolated_y))
-#        
-##        print(interpolated_y)
-#        
-#        """ Finally replace NaN values"""
-#        insert_pos = min(find_NaNs)
-#        
-#        y[lower_index:upper_index+1] = interpolated_y 
-#        
-#        print(find_NaNs)
-        
-        
-     
+for positions in spikestwo:
+    y[positions] = np.nan
 
+y = interpolate_data(y,spikestwo)
 
-          
+delta_y_temp = np.asarray([y.iloc[i+1]-y.iloc[i] for i in range(len(y)-1)])
+
+#'''            
+plt.plot(x,y,'-m', label='goat')
+plt.legend()
+plt.show()
+# #'''
+# """ """
+"""
+
