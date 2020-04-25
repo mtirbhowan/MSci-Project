@@ -120,13 +120,13 @@ def group_forces(calibrated_forces):
     """ Groups:
         LC1 and 2 for the forces on the back of the plate
         LC3 and 4 for the forces on the front of the plate
-        LC1 and 4 for the forces on the left hand side of the plate
+        LC1 and 4 for the forces on the right hand side of the plate
         LC2 and 3 for the forces on the right hand side of the plate. """
     
     back_forces = np.add(calibrated_forces[0],calibrated_forces[1])
     front_forces = np.add(calibrated_forces[2],calibrated_forces[3])
-    left_forces = np.add(calibrated_forces[0],calibrated_forces[3])
-    right_forces = np.add(calibrated_forces[1],calibrated_forces[2])
+    right_forces = np.add(calibrated_forces[0],calibrated_forces[3])
+    left_forces = np.add(calibrated_forces[1],calibrated_forces[2])
     total_forces = np.add(back_forces,front_forces)
     
     return total_forces, left_forces, right_forces, back_forces, front_forces

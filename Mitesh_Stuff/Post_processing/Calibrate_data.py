@@ -88,8 +88,14 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                 (last hh-mm-ss (-12 to -4 chars b/c of .csv)"""
                  
                 time = raw_filename[-12:-4] # use unique time to ID file
-                tare_filename = index_data[index_data.iloc[:,0].str.contains(time,case=False)].iloc[:,1][0]
 
+                tare_filename = index_data[index_data.iloc[:,0].str.contains(time,case=False)].iloc[:,1][0]
+                
+                """ Note: formatting not consistent. If date = 13-04-2020 then
+                    do this because tare files in calibration index
+                    has the format /0.5Kg_Steps/2020-04-13_10-54-39 instead
+                    of 2020-04-13_10-54-39.csv: 
+                        
                 # Note: 
                 # 1) 1st column raw, 2nd column tare  
                 # 2) returns tare_filename in the format /0.5Kg_Steps/2020-04-13_10-54-39
@@ -97,7 +103,8 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                 # Not ideal because os.join can't join because of / needs to be \
                 # GRRR do manually
                 tare_filename = tare_filename[-19:] +'.csv'
-                # Now in format: 2020-04-13_10-54-39.csv
+                # Now in format: 2020-04-13_10-54-39.csv"""
+
 
                 tare_path =  os.path.join(tare_loc,date,folder,tare_filename)
                 tare_file = pd.read_csv(tare_path) # df
@@ -147,7 +154,7 @@ for folder in os.listdir(os.path.join(raw_loc, date)):
                     calibrated_path = os.path.join(calibrated_folder, calibrated_filename)
                     calibrated_data.to_csv(calibrated_path)
                 
-                
+print(len(VE), len(KE))
 
 # Problem with filter function on some data ---> try to debug (see try, except)
 # In the meanwhile, append troublesome files to VE, KE (Value/KeyError)                    

@@ -62,64 +62,64 @@ m_10 = []
 m_15 = []
 
 directory = r'C:\Users\mtirb\Documents\MSci-Project\Data\Calibrated Data'
-for filename in os.listdir(directory):
-    if filename.endswith(".csv"):
-        start = time.time()
-        #time.sleep(5)
-        filename = filename
-        mass = float(filename.split('kg')[0])
-        df = pd.read_csv(os.path.join(directory,filename))
+# for filename in os.listdir(directory):
+#     if filename.endswith(".csv"):
+#         #start = time.time()
+#         #time.sleep(5)
+#         filename = filename
+#         mass = float(filename.split('kg')[0])
+#         df = pd.read_csv(os.path.join(directory,filename))
 
-        # this turns df column to array
-        tot = df.Total_Forces.values
-        t = df.Time.values
-        left = df.Left_Forces.values
-        right = df.Right_Forces.values
-        back = df.Back_Forces.values
-        front = df.Front_Forces.values
+#         # this turns df column to array
+#         tot = df.Total_Forces.values
+#         t = df.Time.values
+#         left = df.Left_Forces.values
+#         right = df.Right_Forces.values
+#         back = df.Back_Forces.values
+#         front = df.Front_Forces.values
     
-        # use peak finder to find positions of peaks in total_force data
-        # returns the indicies of peaks
-        peaks = peak_positions(tot)
+#         # use peak finder to find positions of peaks in total_force data
+#         # returns the indicies of peaks
+#         peaks = peak_positions(tot)
         
-        # plot and save F(t) to count number of successful peaks
-        # and to view validity of data!
-        fig, ax = plt.subplots()
-        ax.plot(t, tot)
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Force (N)')
-        ax.set_title('{}'.format(filename))
-        ax.plot(t[peaks], tot[peaks], "x")
-        #image_name = filename[:-4] + '.png'
-        #plt.savefig(os.path.join(directory,image_name))#'{}.png'.format(filename[:-4]))
-        #plt.close()
+#         # plot and save F(t) to count number of successful peaks
+#         # and to view validity of data!
+#         fig, ax = plt.subplots()
+#         ax.plot(t, tot)
+#         ax.set_xlabel('Time (s)')
+#         ax.set_ylabel('Force (N)')
+#         ax.set_title('{}'.format(filename))
+#         ax.plot(t[peaks], tot[peaks], "x")
+#         #image_name = filename[:-4] + '.png'
+#         #plt.savefig(os.path.join(directory,image_name))#'{}.png'.format(filename[:-4]))
+#         #plt.close()
 
         
-        # cycle_positions = gait_cycle_positions(peaks)
-        # print(filename, ':')
-        # print(cycle_positions)
-        # print('----------')
+#         # cycle_positions = gait_cycle_positions(peaks)
+#         # print(filename, ':')
+#         # print(cycle_positions)
+#         # print('----------')
         
-        # for a, b in cycle_positions:
-        #     area = simps(y=tot[a:b+1], x=t[a:b+1])
-        #     mg = area/(t[b+1]-t[a])
-        #     m = mg/9.81
+#         # for a, b in cycle_positions:
+#         #     area = simps(y=tot[a:b+1], x=t[a:b+1])
+#         #     mg = area/(t[b+1]-t[a])
+#         #     m = mg/9.81
             
-        #     if mass == 0.5:
-        #         m_05.append(m)
-        #     elif mass ==1.0:
-        #         m_10.append(m)
-        #         print('1:', m)
-        #     elif mass ==1.5:
-        #         print('1.5:', m)
-        #         m_15.append(m)
-        #     print('-------')
-    else:
-        continue
+#         #     if mass == 0.5:
+#         #         m_05.append(m)
+#         #     elif mass ==1.0:
+#         #         m_10.append(m)
+#         #         print('1:', m)
+#         #     elif mass ==1.5:
+#         #         print('1.5:', m)
+#         #         m_15.append(m)
+#         #     print('-------')
+#     else:
+#         continue
 
-m_05 = np.mean(np.array(m_05))
-m_10 = np.mean(np.array(m_10))
-m_15 = np.mean(np.array(m_15))
+# m_05 = np.mean(np.array(m_05))
+# m_10 = np.mean(np.array(m_10))
+# m_15 = np.mean(np.array(m_15))
 
 # measured = np.array([m_05,m_10,m_15]) - 0.1
 # actual = np.array([0.5, 1.0, 1.5])
@@ -128,10 +128,25 @@ m_15 = np.mean(np.array(m_15))
 # plt.show()
 
 
+files = [filename for filename in os.listdir(directory) if filename.endswith(".csv")]
 
+file = files[-1]
 
+df = pd.read_csv(os.path.join(directory, file))
 
+# this turns df column to array
+tot = df.Total_Forces.values
+t = df.Time.values
+left = df.Left_Forces.values
+right = df.Right_Forces.values
+back = df.Back_Forces.values
+front = df.Front_Forces.values
 
+plt.plot(t, tot, color='k')
+plt.xlabel('t (s)')
+plt.ylabel('F(t) (N)')
+plt.fill_between(t[72:415], tot[72:415], edgecolor='k', hatch="/", facecolor='cornflowerblue')
+plt.show()
 
 
 # filename = '1.5kg_(13-04-2020)_11-13-03.csv'

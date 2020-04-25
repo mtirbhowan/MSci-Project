@@ -10,6 +10,8 @@ LC3 = read_csv('LC3.csv')
 LC4 = read_csv('LC4.csv')
 
 
+
+
 def values(df, column):
                
     # data from single column
@@ -36,6 +38,19 @@ def values(df, column):
     
     return column, z, z_new, mean, std
 
+"""
+# plots each column in df after filtering to check
+# it removed spikes
+for column in LC2:
+    __, z, z_new, mean, std = values(LC2, column)
+    
+    fig, ax = plt.subplots()
+    ax.plot(z_new)
+    ax.set_title(column)
+    break
+
+"""
+    
 
     
 def plotting_data(LC):
@@ -52,13 +67,12 @@ def plotting_data(LC):
        
         if len(column) != 0:
             mass.append(float(column[0]))
+        
         output.append(mean)
         std_dev.append(std)
     
-    print(len(mass))
-    print(len(output))
     
-    return mass, output, std_dev
+    return np.asarray(mass), np.asarray(output), np.asarray(std_dev)
 
 #x, y, std_dev = plotting_data(LC2)
 
@@ -82,56 +96,108 @@ def plotting_data(LC):
 #             ecolor='orangered', color='steelblue', capsize=2)
 #axs[1].plot(114.14470649223804*np.linspace(471.56,5890,28) + 112745.17170897644, '-k')
 
-
-
+#----------------------------------------------------------------
+# x- are masses
+# y- are the load cell outputs
 """LC1"""
 x1, y1, std_dev1 = plotting_data(LC1)
+x1 = x1/1E3
 slope1, intercept1, r_value1, p_value1, std_error1 = linregress(list(map(float,
                                                     x1)), list(map(float, y1)))
-#
-#
-plt.errorbar(np.float_(x1), np.float_(y1), yerr=std_dev1, fmt='o',
-             capsize=2, color='gold')
-plt.plot(np.float_(x1), intercept1 + slope1*np.float_(x1), '--',
-         color='gold', label='LC1: y={:.4}x + {:.4}'.format(slope1,intercept1))
-
-
 """LC2"""
 x2, y2, std_dev2 = plotting_data(LC2)
+x2 = x2/1E3
 slope2, intercept2, r_value2, p_value2, std_error2 = linregress(list(map(float,
                                                     x2)), list(map(float,y2)))
-#
-#
-plt.errorbar(np.float_(x2), np.float_(y2), yerr=std_dev2, fmt='o',
-             capsize=2, color='cornflowerblue')
-plt.plot(np.float_(x2), intercept2 + slope2*np.float_(x2),
-         color='cornflowerblue', linestyle='dashed' ,
-         label='LC2: y={:.4}x + {:.4}'.format(slope2,intercept2))
-
-
-
 """LC3""" 
 x3, y3, std_dev3 = plotting_data(LC3)
+x3 = x3/1E3
 slope3, intercept3, r_value3, p_value3, std_error3 = linregress(list(map(float,
                                                     x3)), list(map(float, y3)))
-#
-#
-plt.errorbar(np.float_(x3), np.float_(y3), yerr=std_dev3, fmt='o',
-             capsize=2, color='yellowgreen')
-plt.plot(np.float_(x3), intercept3 + slope3*np.float_(x3),'--', 
-         color='yellowgreen',label='LC3: y={:.4}x + {:.4}'.format(slope3,intercept3))
-
 
 """LC4"""
 x4, y4, std_dev4 = plotting_data(LC4)
+x4 = x4/1E3
 slope4, intercept4, r_value4, p_value4, std_error4 = linregress(list(map(float,
                                                     x4)), list(map(float, y4)))
+
+# uncomment for all plots on 1 graph
+"""
+# LC1 plot
+plt.errorbar(x1, y1, yerr=std_dev1, fmt='o',
+             capsize=2, color='gold')
+plt.plot(x1, intercept1 + slope1*x1, '--',
+         color='gold', label='LC1: y={:.4}x + {:.4}'.format(slope1,intercept1))
+plt.xlabel('Mass (kg)')
+plt.ylabel('Output (mV)')
+# LC2 plot
+plt.errorbar(x2, y2, yerr=std_dev2, fmt='o',
+             capsize=2, color='cornflowerblue')
+plt.plot(x2, intercept2 + slope2*x2,
+         color='cornflowerblue', linestyle='dashed' ,
+         label='LC2: y={:.4}x + {:.4}'.format(slope2,intercept2))
+# LC3 plot
+plt.errorbar(x3, y3, yerr=std_dev3, fmt='o',
+             capsize=2, color='yellowgreen')
+plt.plot(x3, intercept3 + slope3*x3,'--', 
+         color='yellowgreen',label='LC3: y={:.4}x + {:.4}'.format(slope3,intercept3))
 #
-#
-plt.errorbar(np.float_(x4), np.float_(y4), yerr=std_dev4, fmt='o',
+# LC4 plot
+plt.errorbar(x4, y4, yerr=std_dev4, fmt='o',
              capsize=2, color='tomato')
-plt.plot(np.float_(x4), intercept4 + slope4*np.float_(x4), '--',
+plt.plot(x4, intercept4 + slope4*x4, '--',
          color='tomato',label='LC4: y={:.4}x + {:.4}'.format(slope4,intercept4))
 
 plt.legend()
 plt.show()    
+"""
+
+
+
+fig, axs = plt.subplots(2,2, figsize=(20, 10))
+axs[0,0].errorbar(x1, y1, yerr=std_dev1, fmt='o',
+             capsize=2, color='gold')
+axs[0,0].plot(x1, intercept1 + slope1*x1, '--',
+         color='gold', label='y={:.4}x + {:.4} = '.format(slope1,intercept1))
+#axs[0,0].legend(loc="upper left")
+axs[0,0].set(ylabel='Ouput (UNITS)')
+axs[0,0].text(0.0, 6.5E5, 'y={:.4}x + {:.4}\nR$^2$={:.7}\nSE={:.4}'.format(slope1,intercept1,r_value1**2,std_error1), color='black', 
+        bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+axs[0, 0].set_title('LC1')
+
+axs[0,1].errorbar(x2, y2, yerr=std_dev2, fmt='o',
+             capsize=2, color='cornflowerblue')
+axs[0,1].plot(x2, intercept2 + slope2*x2,
+         color='cornflowerblue', linestyle='dashed' ,
+         label='LC2: y={:.4}x + {:.4}'.format(slope2,intercept2))
+#axs[0,1].legend(loc="upper left")
+axs[0,1].text(0.0, 6.5E5, 'y={:.4}x + {:.4}\nR$^2$={:.8}\nSE={:.4}'.format(slope2,intercept2,r_value2**2,std_error2), color='black', 
+        bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+axs[0,1].set_title('LC2')
+
+axs[1,0].errorbar(x3, y3, yerr=std_dev3, fmt='o',
+             capsize=2, color='yellowgreen')
+axs[1,0].plot(x3, intercept3 + slope3*x3,'--', 
+         color='yellowgreen',label='LC3: y={:.4}x + {:.4}'.format(slope3,intercept3))
+#axs[1,0].legend(loc="upper left")
+axs[1,0].set(xlabel='Mass (kg)', ylabel='Ouput (UNITS)')
+axs[1,0].text(0.0, 4.5E5, 'y={:.4}x {:.4}\nR$^2$={:.7}\nSE={:.4}'.format(slope1,intercept3,r_value3**2,std_error3), color='black', 
+        bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+axs[1,0].set_title('LC3')
+
+axs[1,1].errorbar(x4, y4, yerr=std_dev4, fmt='o',
+             capsize=2, color='tomato')
+axs[1,1].plot(x4, intercept4 + slope4*x4, '--',
+         color='tomato',label='LC4: y={:.4}x + {:.4}'.format(slope4,intercept4))
+#axs[1,1].legend(loc="upper left")
+axs[1,1].set(xlabel='Mass (kg)')
+axs[1,1].text(0.0, 5.75E5, 'y={:.4}x + {:.4}\nR$^2$={:.7}\nSE={:.4}'.format(slope4,intercept4,r_value4**2,std_error4), color='black', 
+        bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+axs[1,1].set_title('LC4')
+
+plt.savefig('Loading_Curves.png', bbox_inches='tight')
+
+# print('std_error1 =', std_error1)
+# print('std_error2 =', std_error2)
+# print('std_error3 =', std_error3)
+# print('std_error4 =', std_error4)
