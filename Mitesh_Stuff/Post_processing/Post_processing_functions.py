@@ -103,13 +103,15 @@ def gait_cycle_positions(peaks):
     
     return gait_cycle_bounds
 
-def integrate_simps(total_forces, x, a, b):
-    """ total_forces: f(t)
+def integrate_simps(total_forces, time, a, b):
+    """ total_forces: F
+        time: makes F -> F(t)
         a: lower integration bound (start of gait cycle)
         b: upper integration bound (end of gait cycle)
         """
     integrand = total_forces[a:b+1]
-    area = simps(y=integrand, x=x)
+    time_interval = time[a:b+1]
+    area = simps(y=integrand, x=time_interval)
     
     return area 
 
@@ -118,13 +120,13 @@ def group_forces(calibrated_forces):
     """ Groups:
         LC1 and 2 for the forces on the back of the plate
         LC3 and 4 for the forces on the front of the plate
-        LC1 and 4 for the forces on the left hand side of the plate
+        LC1 and 4 for the forces on the right hand side of the plate
         LC2 and 3 for the forces on the right hand side of the plate. """
     
     back_forces = np.add(calibrated_forces[0],calibrated_forces[1])
     front_forces = np.add(calibrated_forces[2],calibrated_forces[3])
-    left_forces = np.add(calibrated_forces[0],calibrated_forces[3])
-    right_forces = np.add(calibrated_forces[1],calibrated_forces[2])
+    right_forces = np.add(calibrated_forces[0],calibrated_forces[3])
+    left_forces = np.add(calibrated_forces[1],calibrated_forces[2])
     total_forces = np.add(back_forces,front_forces)
     
     return total_forces, left_forces, right_forces, back_forces, front_forces
@@ -166,7 +168,7 @@ def calibrate_timings(raw_file):
                                        raw_file['Post Times LC3'] + 
                                        raw_file['Post Times LC4'])
     # Make it start from t = 0 s
-    raw_file['Time_(s)'] = (raw_file['Average Timing'] - 
+    raw_file['Time'] = (raw_file['Average Timing'] - 
                             raw_file['Average Timing'][0]) 
     
-    return raw_file['Time_(s)']
+    return raw_file['Time']

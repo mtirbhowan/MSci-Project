@@ -138,6 +138,17 @@ def group_forces(calibrated_forces):
     total_forces = np.add(back_forces,front_forces)
     
     return total_forces, left_forces, right_forces, back_forces, front_forces
+
+# Open files
+
+date = '13-04-2020'
+    
+tare_dir = r'C:\\Users\mtirb\Documents\MSci-Project\Data\Tares'
+
+tare_folder = '1Kg_Walks'
+
+tare_file = tare_dir
+
 """
 # Open files
 tares = open_tare('TARE_2020-03-23_22-17-49.csv')
@@ -174,6 +185,8 @@ axs[3].plot(x,left_forces,'tab:green')
 axs[3].set_title('Left LCs')
 axs[4].plot(x,right_forces, 'tab:green')
 axs[4].set_title('Right LCs')
+"""
+
 """
 
 raw_data = open_raw('2kg(1).csv', raw_data_dir='C:\\Users\mtirb\Documents\MSci-Project\Data\Raw_Data_Testing')
@@ -226,7 +239,7 @@ peaks, _ = find_peaks(total_forces, prominence=1)
 plt.plot(peaks, total_forces[peaks], "xr"); plt.plot(total_forces, 'k')
 plt.show()
 
-
+"""
     
 
 
