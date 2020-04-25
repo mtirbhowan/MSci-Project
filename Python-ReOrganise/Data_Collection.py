@@ -161,14 +161,14 @@ def penguin_data_recording(LCs, LC_nums, today, custom_title_per_walk = False, c
        
     filtered_data     = LC.median_filter_values(combined_data[0])
         
-    calibrated_values = LC.calibrate_values(filtered_data, tare_data, LC_nums)
+    calibrated_values, calibrated_errors = LC.calibrate_values(filtered_data, tare_data, LC_nums)
     
     
     mid_times, measurement_lengths, time_between_data = LC.calculate_times (combined_data[1], combined_data[2], combined_data[3])
     
     if carryout_CoP == True:
 
-        x, y, total_force, mid_times = DA.calculate_CoP(calibrated_values, mid_times, plot_position_values=plot_CoP)
+        x, y, total_force, mid_times = DA.calculate_CoP(calibrated_values, calibrated_errors, mid_times, plot_position_values=plot_CoP)
         
         if save_CoP == True:
             
@@ -240,7 +240,7 @@ def continuous_measurement(med_filt = False, carryout_CoP=False, plot_CoP = Fals
         run_number += 1
         print('Run Number mod = {}'.format(run_number % 10))
         
-        if run_number % 30 == 0 and tare_taken == True:
+        if run_number % 5 == 0 and tare_taken == True:
             print('Tare condition 1')
             take_tare = True
         

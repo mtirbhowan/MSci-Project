@@ -161,29 +161,29 @@ def calibrate_values( filtered_values, tare, load_cells_to_test ):
     '''
     Calibrates raw_values to Newtons - using Tare and calibration coeficients
     '''
-    DL_e = 100
+    DL_e = 135
     
     LC_1 = [  93022.3786, 112.6440*1000/9.807] #calibration coef for counts to Newtons
     LC_2 = [ 112752.4543, 114.1429*1000/9.807]
     LC_3 = [ -76321.8141, 113.9544*1000/9.807]
     LC_4 = [ 230100.9711, 113.3840*1000/9.807]
     
-    LC_1_e = [ 100, (112.6440*1000/9.807)*0.01] #calibration uncertatinty coef for counts to Newtons
-    LC_2_e = [ 100, (114.1429*1000/9.807)*0.01]
-    LC_3_e = [ 100, (113.9544*1000/9.807)*0.01]
-    LC_4_e = [ 100, (113.3840*1000/9.807)*0.01]
+    LC_1_e = [ 100, 9.438] #calibration uncertatinty coef for counts to Newtons
+    LC_2_e = [ 100, 1.824]
+    LC_3_e = [ 100, 23.24]
+    LC_4_e = [ 100, 10.41]
     
     
     LC_calibration_coef = [LC_1,LC_2,LC_3,LC_4] #sort to array
     LC_calibration_coef_e = [LC_1_e,LC_2_e,LC_3_e,LC_4_e] 
     
-    calibrated_force = [] # In Newtons
-    calibrated_error = []
+    calibrated_values = [] # In Newtons
+    calibrated_errors = []
     # Next run through number of load cells and calibrate counts to new array
     for i in range(len(filtered_values)):
         
-        calibrated_force.append([])        
-        calibrated_error.append([])
+        calibrated_values.append([])        
+        calibrated_errors.append([])
         
         for j in range(len(filtered_values[i])):
             
@@ -192,7 +192,7 @@ def calibrate_values( filtered_values, tare, load_cells_to_test ):
             grad = LC_calibration_coef[load_cells_to_test[i]-1][1]
             T    = tare[0][load_cells_to_test[i]-1]
             
-            DL_e   = filtered_values[i][j]
+
             Off_e  = LC_calibration_coef_e[load_cells_to_test[i]-1][0]
             grad_e = LC_calibration_coef_e[load_cells_to_test[i]-1][1]
             T_e    = tare[1][load_cells_to_test[i]-1]
@@ -204,10 +204,13 @@ def calibrate_values( filtered_values, tare, load_cells_to_test ):
             subtracted_data = (DL - Off - T )
             
             force_gram = (subtracted_data / grad ) 
-        
-            calibrated_force[i].append(force_gram)
+            
+            force_error = np.sqrt( (1/grad)**2*(DL_e)**2 + (1/grad)**2*(Off_e)**2 + (1/grad)**2*(T_e)**2 + ((DL-Off-T)/(grad**2))**2*(grad_e)**2  )
+            
+            calibrated_values[i].append(force_gram)
+            calibrated_errors[i].append(force_error)
     
-    return calibrated_force
+    return calibrated_values, calibrated_errors
    
 def take_tare( LCs, LCs_num , countdown_timer = False, med_filt = False, plot_tare = False, save_tare = False):
     '''
@@ -375,7 +378,7 @@ def take_run( number_of_measurements, use_default_tare = False, med_filt = False
     
         tare = [[-32815,95200,95800,87050],[]]
     
-    calibrated_values = calibrate_values( filtered_values, tare, load_cells_to_test_array )
+    calibrated_values, calibrated_errors = calibrate_values( filtered_values, tare, load_cells_to_test_array )
     
     
     mid_times, measurement_lengths, time_between_data = calculate_times (pre_times, post_times, total_and_start)

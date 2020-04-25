@@ -13,38 +13,48 @@ import copy
 import Data_Load_Save as LS
 import Load_Cell_Data as LC
 
-def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, plot_position_over_time = False, save_CoP_data = False):
+def calculate_CoP( calibrated_values, calibrated_errors, mid_times , plot_position_values = False, plot_position_over_time = False, save_CoP_data = False):
     
     LCs_num = [1,2,3,4]
     
     LC_force    = copy.deepcopy( calibrated_values )
-    
+    LC_force_e  = copy.deepcopy( calibrated_errors )
     
     LC_force = np.asarray(LC_force)
+    LC_force_e = np.asarray(LC_force_e)
     
     total_force = LC_force[0] + LC_force[1] + LC_force[2] + LC_force[3]
+    total_force_e = np.sqrt( LC_force_e[0]**2 + LC_force_e[1]**2 + LC_force_e[2]**2 + LC_force_e[3]**2 )
     
     x = (LC_force[0]+LC_force[3]) * 180/total_force #top half of RHS scales to mm
     y = (LC_force[2]+LC_force[3]) * 342/total_force
+    
+    x_e = np.sqrt( (180/total_force)**2*(LC_force_e[0])**2 + (180/total_force)**2*(LC_force_e[3])**2 + ((LC_force[0]+LC_force[3] * 180 ) / (total_force**2))**2*(total_force_e)**2 + (LC_force[0]+LC_force[3]/total_force)**2*(0.5)**2 )
+    y_e = np.sqrt( (342/total_force)**2*(LC_force_e[2])**2 + (342/total_force)**2*(LC_force_e[3])**2 + ((LC_force[2]+LC_force[3] * 342 ) / (total_force**2))**2*(total_force_e)**2 + (LC_force[2]+LC_force[3]/total_force)**2*(0.5)**2 )
     
     for i in range(len(x)):
         
         if x[i] >= 227.5 or x[i] <= -46.5:
             x[i] = np.nan
             y[i] = np.nan
+            x_e[i] = np.nan
+            y_e[i] = np.nan
             
         if y[i] >= 370 or y[i] <= -24:
             x[i] = np.nan
             y[i] = np.nan
-
-        
-    for i in range(len(total_force)):
+            x_e[i] = np.nan
+            y_e[i] = np.nan
+            
+    for i in range(4):
         
         if total_force[i] <= 0.05:
                 
                 x[i] = np.nan
                 y[i] = np.nan
-      
+                x_e[i] = np.nan
+                y_e[i] = np.nan
+            
     if plot_position_values == True:
         
 
@@ -57,15 +67,18 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
         position_ax    = fig.add_subplot(gs[ 2, 0], sharex = all_force_ax )
         view_ax        = fig.add_subplot(gs[ :,-1])
                 
-        for i in range(len(mid_times)):
+        for i in range(4):
             
-            all_force_ax    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
+            #all_force_ax    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
+            all_force_ax    . errorbar (mid_times[i], LC_force[i], yerr=LC_force_e[i], label ='LC {}'.format(LCs_num[i]))
 #             all_force_ax    .scatter( mid_times[i], LC_force[i]     )            
         
 #         position_ax .scatter( mid_times[0], x   )
 #         position_ax .scatter( mid_times[0], y   )
-        position_ax .plot   ( mid_times[0], x ,label = 'X Position'  )
-        position_ax .plot   ( mid_times[0], y ,label = 'Y Position'  )
+        #position_ax .plot   ( mid_times[0], x ,label = 'X Position'  )
+        #position_ax .plot   ( mid_times[0], y ,label = 'Y Position'  )
+        position_ax.errorbar   ( mid_times[0], x , yerr=x_e, label = 'X Position'  )
+        position_ax.errorbar   ( mid_times[0], y , yerr=y_e, label = 'Y Position'  )
                     
         
         all_force_ax .legend()
@@ -76,7 +89,7 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
                 
         all_force_ax .set_title ('Force on LCs')
         all_force_ax .set_xlabel('Time (s)'  )
-        all_force_ax .set_ylabel('Output (counts)')
+        all_force_ax .set_ylabel('Force (N)')
         
         position_ax .set_title ('Position with Time')
         position_ax .set_xlabel('Time (s)'   )
@@ -87,7 +100,7 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
 #         print(len(mid_times[0]))
 #         
 #         total_force_ax .scatter(mid_times[0], total_force)
-        total_force_ax .plot   (mid_times[0], total_force)
+        total_force_ax .errorbar   (mid_times[0], total_force, yerr=total_force_e)
         
         total_force_ax .set_title ('Total Force')
         total_force_ax .set_xlabel('Time (s)'  )
