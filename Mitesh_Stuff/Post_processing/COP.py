@@ -50,20 +50,9 @@ def gait_cycle_positions(peaks):
     
     return gait_cycle_bounds
 
-def integrate_simps(total_forces, time, a, b):
-    """ total_forces: F
-        time: makes F -> F(t)
-        a: lower integration bound (start of gait cycle)
-        b: upper integration bound (end of gait cycle)
-        """
-    integrand = total_forces[a:b+1]
-    time_interval = time[a:b+1]
-    area = simps(y=integrand, x=time_interval)
-    
-    return area 
+
 
 directory = r'C:\Users\mtirb\Documents\MSci-Project\Data\Calibrated Data'
-image_directory = r'C:\Users\mtirb\Documents\UoB\4th Year\Penguin Project\Figures_to_analyse\Steps'
    
 files = [f for f in os.listdir(directory) if f.endswith('.csv')]
 """
@@ -161,15 +150,15 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
         position_ax    = fig.add_subplot(gs[ 2, 0], sharex = all_force_ax )
         view_ax        = fig.add_subplot(gs[ :,-1])
                 
-        for i in range(len(mid_times)):
+        for i in range(4):
             
-            all_force_ax    .plot   ( mid_times[i], LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
+            all_force_ax    .plot   ( mid_times, LC_force[i] , label = 'LC {}'.format(LCs_num[i]) )
 #             all_force_ax    .scatter( mid_times[i], LC_force[i]     )            
         
 #         position_ax .scatter( mid_times[0], x   )
 #         position_ax .scatter( mid_times[0], y   )
-        position_ax .plot   ( mid_times[0], x ,label = 'X Position'  )
-        position_ax .plot   ( mid_times[0], y ,label = 'Y Position'  )
+        position_ax .plot   ( mid_times, x ,label = 'X Position'  )
+        position_ax .plot   ( mid_times, y ,label = 'Y Position'  )
                     
         
         all_force_ax .legend()
@@ -191,7 +180,7 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
 #         print(len(mid_times[0]))
 #         
 #         total_force_ax .scatter(mid_times[0], total_force)
-        total_force_ax .plot   (mid_times[0], total_force)
+        total_force_ax .plot   (mid_times, total_force)
         
         total_force_ax .set_title ('Total Force')
         total_force_ax .set_xlabel('Time (s)'  )
@@ -227,7 +216,7 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
         
 #         print(force_plot_scaled)
         
-        view_ax.scatter(x,y, s=force_plot_scaled,c=mid_times[0],alpha=0.8,edgecolors='black')
+        view_ax.scatter(x,y, s=force_plot_scaled,c=mid_times,alpha=0.8,edgecolors='black')
         
         view_ax.set_xlabel('X Position (mm)')
         view_ax.set_ylabel('Y Position (mm)')
@@ -246,7 +235,7 @@ def calculate_CoP( calibrated_values, mid_times , plot_position_values = False, 
     return x, y, total_force, mid_times
 
 
-filename = files[11]
+filename = files[5]
 mass = float(filename.split('kg')[0])
 df = pd.read_csv(os.path.join(directory,filename))
 
@@ -261,40 +250,77 @@ calibrated_vals = [df.LC1.values,df.LC2.values,df.LC3.values,df.LC4.values]
 
 
 
-x, y, total_force, mid_times = calculate_CoP(calibrated_vals, t, plot_position_values = False, plot_position_over_time = False)
+#x, y, total_force, mid_times = calculate_CoP(calibrated_vals, t, plot_position_values = True, plot_position_over_time = False)
 
 
 
 
 
 
-# x = (right)*(180/tot) # RIGHT = LC1 & 4
-# y = (front)*(342/tot) # LEFT = LC3 & 4
+x = (right)*(180/tot) # RIGHT = LC1 & 4
+y = (front)*(342/tot) # LEFT = LC3 & 4
 
 
-# # plt.plot(t, front)
-# # plt.show()
+# plt.plot(t, front)
+# plt.show()
 
 
-# for i in range(len(x)):
+for i in range(len(x)):
     
-#     if x[i] >= 227.5 or x[i] <= -46.5:
-#         x[i] = np.nan
-#         y[i] = np.nan
+    if x[i] >= 227.5 or x[i] <= -46.5:
+        x[i] = np.nan
+        y[i] = np.nan
         
-#     if y[i] >= 370 or y[i] <= -24:
-#         x[i] = np.nan
-#         y[i] = np.nan
+    if y[i] >= 370 or y[i] <= -24:
+        x[i] = np.nan
+        y[i] = np.nan
 
     
-# for i in range(len(tot)):
+for i in range(len(tot)):
     
-#     if tot[i] <= 0.05:
+    if tot[i] <= 0.05:
             
-#             x[i] = np.nan
-#             y[i] = np.nan
+            x[i] = np.nan
+            y[i] = np.nan
 
-# plt.scatter(x, y, s=2)
+from scipy.signal import argrelextrema
+
+maxInd = argrelextrema(x, np.greater)
+
+
+# plt.scatter(x, y, s=8, color='g')
+# plt.scatter(x[maxInd], y[maxInd], s=1,color='red')
+plt.plot(t,x)
+plt.plot(t,y)
+plt.show()
+
+gridx = np.linspace(0, np.nanmax(x), 10)
+gridy = np.linspace(0, np.nanmax(y), 10)
+plt.gca().set_aspect('equal', adjustable='box')
+grid, _, _ = np.histogram2d(x, y, bins=[gridx, gridy])
+plt.figure()
+plt.gca().set_aspect('equal', adjustable='box')
+plt.pcolormesh(gridx, gridy, grid)
+plt.plot(x, y, 'ro')
+plt.colorbar()
+
+x = x[np.logical_not(np.isnan(x))] 
+y = y[np.logical_not(np.isnan(y))] 
+plt.plot(x, y, 'ro')
+plt.gca().set_aspect('equal', adjustable='box')
+
+plt.show()
+plt.colorbar()
+arr, x, y, i= plt.hist2d(x,y,bins=15)
+maxind = arr.argmax()
+print(np.unravel_index(maxind,arr.shape))
+
+from itertools import product
+indices = [(i,j,arr[i,j]) for i,j in product(range(len(arr)),range(len(arr[0])))]
+sorted_indices = sorted(indices,key= lambda x : x[2],reverse=True)
+print(sorted_indices[:7])
+print(list(filter(lambda x: x[2]>30,sorted_indices)))
+
 # plt.ylim(0,342)
 # plt.xlim(0,180)
 # plt.gca().set_aspect('equal', adjustable='box')

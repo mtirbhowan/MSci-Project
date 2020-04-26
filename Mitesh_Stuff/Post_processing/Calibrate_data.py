@@ -46,7 +46,7 @@ j = 0
 
 
 # Find date from folder name in raw data folder
-date = '13-04-2020'
+date = '26-04-2020'
 
 # OPEN RAW 
 raw_loc = r'C:\Users\mtirb\Documents\MSci-Project\Data\Raw Recorded Data'

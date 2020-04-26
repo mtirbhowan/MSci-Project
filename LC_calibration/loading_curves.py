@@ -50,8 +50,32 @@ for column in LC2:
     break
 
 """
-    
 
+# import scipy.fftpack
+# spdata = LC1.iloc[:,2].replace(to_replace='False', value=np.nan).dropna().map(float).to_numpy()
+
+# N = len(spdata)
+
+# T = 1.0/87.0
+
+# x = np.linspace(0.0, N*T, N)
+
+# y = spdata
+
+# yf = scipy.fftpack.fft(y)
+# xf = np.linspace(0.0, 1.0//(2.0*T), N//2)
+   
+# # fig, ax = plt.subplots()
+# # ax.semilogy(xf, (2.0/N * np.abs(yf[:N//2])))
+# plt.semilogy(xf, (2.0/N * np.abs(yf[:N//2])))
+# plt.show()
+ 
+# spdata = LC1.iloc[:,2].replace(to_replace='False', value=np.nan).dropna().map(float).to_numpy()
+# sp = np.fft.fft(np.sort(spdata))
+# t = np.arange(len(sp))*0.011494
+# freq = np.fft.fftfreq(t.shape[-1])
+# plt.plot(freq, sp.real, freq, sp.imag)
+# plt.show()
     
 def plotting_data(LC):
     
