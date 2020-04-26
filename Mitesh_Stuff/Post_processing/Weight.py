@@ -160,12 +160,17 @@ m, b = np.polyfit(actual, measured, 1)
 print(m, b)
 
 
-plt.errorbar(actual, measured, yerr=errors)#plt.scatter(measured, actual)
-plt.scatter(actual, measured, color='red')
-plt.plot(actual, m*actual+b,'green')
-plt.xlabel('actual')
-plt.ylabel('measured')
+plt.errorbar(actual, measured, yerr=errors, ls='none')#plt.scatter(measured, actual)
+plt.scatter(actual, measured, color='b')
+plt.plot(actual, m*actual+b,'red')
+plt.xlabel('Actual mass (kg)')
+plt.ylabel('Measured mass (kg)')
 plt.show()
+
+# y = a*x + b
+# a = 1.05 pm 0.04
+# b = 0.05 pm 0.05
+
 
 # print(np.mean([0.60143, 0.60574]))
 

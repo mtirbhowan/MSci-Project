@@ -71,7 +71,7 @@ for filename in os.listdir(directory):
         front = df.Front_Forces.values
         
         peaks = peak_positions(tot)
-        """
+        
         # plot and save F(t) to count number of successful peaks
         # and to view validity of data!
         fig, axs = plt.subplots(2)
@@ -83,15 +83,14 @@ for filename in os.listdir(directory):
         image_name = filename[:-4] + '.png'
         #plt.savefig(os.path.join(directory,image_name))#'{}.png'.format(filename[:-4]))
         #plt.close()
-        """
         
-        fig, ax = plt.subplots()
         
-        ax.plot(t, left)
+        # fig, ax = plt.subplots()
+        # ax.plot(t, tot)
         
         N = 26
         t_chunks = np.array_split(t, N)    
-        tot_chunks = np.array_split(left, N)
+        tot_chunks = np.array_split(tot, N)
         
         conditions_met =  []
         
@@ -101,13 +100,13 @@ for filename in os.listdir(directory):
             m, b = np.polyfit(x, y, 1)
             if abs(m) < 0.5 and np.mean(y)>2 and np.mean(y)<(9.81*mass*1.5):
                 conditions_met.append(i)
-                ax.plot(x, m*x +b)
-                ax.annotate("", xy=(x[0],(m*x[0]+b) ), xytext=(x[0], 0),
-                      arrowprops=dict(arrowstyle="->"))
+                # ax.plot(x, m*x +b)
+                # ax.annotate("", xy=(x[0],(m*x[0]+b) ), xytext=(x[0], 0),
+                #       arrowprops=dict(arrowstyle="->"))
 
         grouped = [list(group) for group in mit.consecutive_groups(conditions_met)]
         
-        """     
+
         for indicies in grouped:
             mean_index = int(round(np.mean(np.array(indicies))))
             
@@ -125,7 +124,7 @@ for filename in os.listdir(directory):
         plt.show()
         # plt.savefig(os.path.join(image_directory,image_name))#'{}.png'.format(filename[:-4]))
         # plt.close()
-        """
+
         
     else:
         continue
