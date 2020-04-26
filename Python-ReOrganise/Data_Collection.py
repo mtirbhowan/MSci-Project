@@ -61,7 +61,7 @@ def monitor(LCs, LC_nums, tare, plot = False, med_filt = False):
     
     return [raw_values, pre_times, post_times, total_and_start]
 
-def record_walk( LCs, LC_nums , tare, med_filt= False):
+def record_walk( LCs, LC_nums , tare, use_trigger = True, med_filt= False):
     
     start_time = time.time()
     timeout_condition = False
@@ -103,13 +103,14 @@ def record_walk( LCs, LC_nums , tare, med_filt= False):
         for i in range(4):
             
             difference[i] = (abs(tare[0][i] - np.mean(filtered_values[i]) + LC_offsets[i]))
-        
-        if difference[0] + difference[1] + difference[2] + difference[3] <= trigger_value_counts:
             
-            print('Minimum counts not met')
+        if use_trigger == True:
+            if difference[0] + difference[1] + difference[2] + difference[3] <= trigger_value_counts:
+                
+                print('Minimum counts not met')
+                
+                break
             
-            break
-        
         record_time = time.time() - start_time
         
     if record_time >= 30:
@@ -120,7 +121,7 @@ def record_walk( LCs, LC_nums , tare, med_filt= False):
    
     return [raw_values_rec, pre_times_rec, post_times_rec, total_and_start_rec], timeout_condition
 
-def penguin_data_recording(LCs, LC_nums, today, custom_title_per_walk = False, custom_title_for_session = False, tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
+def penguin_data_recording(LCs, LC_nums, today, custom_title_per_walk = False, custom_title_for_session = False, use_trigger = True, tare = False, carryout_CoP=False, save_raw= False, save_CoP=False, plot_CoP = False, plot_tare = False, med_filt = False):
 
     if type(tare) == bool:
     
@@ -143,7 +144,7 @@ def penguin_data_recording(LCs, LC_nums, today, custom_title_per_walk = False, c
         tare_data = tare
     
     pre_trigger_data  = monitor(LCs, LC_nums, tare_data, med_filt=med_filt)
-    post_trigger_data, timeout_condition = record_walk(LCs, LC_nums, tare_data, med_filt=med_filt)
+    post_trigger_data, timeout_condition = record_walk(LCs, LC_nums, tare_data, use_trigger=use_trigger, med_filt=med_filt)
 
     combined_data   = [[[],[],[],[]],[[],[],[],[]],[[],[],[],[]],[]]
     
@@ -210,7 +211,7 @@ def single_measurement(med_file = False, custom_folder = False, custom_title_for
 
 '''
 
-def continuous_measurement(med_filt = False, carryout_CoP=False, plot_CoP = False, custom_title_per_walk = False, custom_title_for_session=False, save_raw = True):
+def continuous_measurement(med_filt = False, use_trigger =True, carryout_CoP=False, plot_CoP = False, custom_title_per_walk = False, custom_title_for_session=False, save_raw = True):
     
     today = datetime.date.today()
     today = today.strftime('%d-%m-%Y')
@@ -255,7 +256,7 @@ def continuous_measurement(med_filt = False, carryout_CoP=False, plot_CoP = Fals
         print('Take Tare Condition: {}'.format(take_tare))
         print('Measurement Number: {}'.format(run_number))
         
-        tare_data, timeout_condition = penguin_data_recording( LCs, LC_nums, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session=custom_title_for_session, tare = take_tare, save_raw = save_raw , med_filt = med_filt, carryout_CoP=carryout_CoP, plot_CoP = plot_CoP)
+        tare_data, timeout_condition = penguin_data_recording( LCs, LC_nums, today, custom_title_per_walk = custom_title_per_walk, custom_title_for_session=custom_title_for_session, use_trigger = use_trigger, tare = take_tare, save_raw = save_raw , med_filt = med_filt, carryout_CoP=carryout_CoP, plot_CoP = plot_CoP)
         tare_taken = True
         if timeout_condition == True:
             tare_taken = False
