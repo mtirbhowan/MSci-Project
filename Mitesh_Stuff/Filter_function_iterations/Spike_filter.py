@@ -26,7 +26,6 @@ def spike_filter(df,col,num_of_filters=1,threshold_param = 5E5,filter_param1=-6E
     # replace FALSEs with NaNs
     y = y.replace(to_replace='False', value=np.nan).map(float)
 
-    ''' Loop here? To avoid .to_frame()? '''
     # find NaNs
     NaNs = np.where(np.isnan(y))[0]
     
@@ -80,7 +79,7 @@ def spike_filter(df,col,num_of_filters=1,threshold_param = 5E5,filter_param1=-6E
                 data[lower_index:upper_index+1] = interpolated_data 
         return data
     
-    y = interpolate_data(y,anomalies) 
+    y = interpolate_data(y, anomalies) 
     
     if num_of_filters==1:
         

@@ -121,12 +121,84 @@ for filename in os.listdir(directory):
         axs[1].set_ylabel('Force (N)')
         
         image_name = filename[:-4] + '.png'
-        plt.show()
+        # plt.show()
         # plt.savefig(os.path.join(image_directory,image_name))#'{}.png'.format(filename[:-4]))
         # plt.close()
 
         
     else:
         continue
+    
+    
+files = [filename for filename in os.listdir(directory) if filename.endswith(".csv")]
 
 
+file = files[43] #43
+df = pd.read_csv(os.path.join(directory, file))
+tot = df.Total_Forces.values
+t = df.Time.values
+left = df.Left_Forces.values
+right = df.Right_Forces.values
+back = df.Back_Forces.values
+front = df.Front_Forces.values
+mass = float(file.split('kg')[0])
+
+fig, ax = plt.subplots(2)
+ax[0].plot(t, tot)
+ax[0].set_ylabel('Total Force (N)', fontsize=14)
+ax[1].plot(t, left, 'r')
+ax[1].plot(t,right,'g')
+ax[1].set_xlabel('Times (s)', fontsize=14)
+ax[1].set_ylabel('Force (N)', fontsize=14)
+
+
+
+
+fig1, ax = plt.subplots()
+fig2, axs = plt.subplots()
+ax.plot(t, tot)
+ax.grid()
+ax.set_xlabel('Times (s)', fontsize=14)
+ax.set_ylabel('Force (N)', fontsize=14)
+
+axs.plot(t, tot)
+axs.set_xlabel('Times (s)', fontsize=14)
+axs.set_ylabel('Force (N)', fontsize=14)
+axs.grid()
+
+
+N = 26
+t_chunks = np.array_split(t, N)    
+tot_chunks = np.array_split(tot, N)
+
+conditions_met =  []
+
+for i in range(N):
+    x = t_chunks[i]
+    y = tot_chunks[i]
+    m, b = np.polyfit(x, y, 1)
+    ax.plot(x, m*x +b)
+    if abs(m) < 0.5 and np.mean(y)>2 and np.mean(y)<(9.81*mass*1.5):
+        conditions_met.append(i)
+        # axs[1].plot(x, m*x +b)
+        # axs[1].annotate("", xy=(x[0],(m*x[0]+b) ), xytext=(x[0], 0),
+        #       arrowprops=dict(arrowstyle="->"))
+
+grouped = [list(group) for group in mit.consecutive_groups(conditions_met)]
+
+
+for indicies in grouped:
+    mean_index = int(round(np.mean(np.array(indicies))))
+    
+    
+    m = t_chunks[mean_index][0]
+    
+    n = tot_chunks[mean_index][0]
+    axs.annotate("", xy=(m,n), xytext=(m, 0),
+                arrowprops=dict(arrowstyle="->"))
+
+axs.tick_params(axis="x", labelsize=14)
+axs.tick_params(axis="y", labelsize=14)
+
+ax.tick_params(axis="x", labelsize=14)
+ax.tick_params(axis="y", labelsize=14)
