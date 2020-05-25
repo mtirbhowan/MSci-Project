@@ -1,12 +1,9 @@
-""" Need this to open all the calibrated files and calculate the weight for
-    each one. """
-
 import pandas as pd
 import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from scipy.integrate import simps
-import time
+
 import numpy as np
 
 def peak_positions(total_force_data):
@@ -55,6 +52,7 @@ def integrate_simps(total_forces, time, a, b):
     area = simps(y=integrand, x=time_interval)
     
     return area 
+
 err=[]
 acc=[]
 m_05 = []
@@ -62,13 +60,11 @@ m_10 = []
 m_15 = []
 m_20 = []
 
-# difference = []
 
 directory = r'C:\Users\mtirb\Documents\MSci-Project\Data\Calibrated Data'
 for filename in os.listdir(directory):
     if filename.endswith(".csv"):
-        #start = time.time()
-        #time.sleep(5)
+
         filename = filename
         mass = float(filename.split('kg')[0])
         df = pd.read_csv(os.path.join(directory,filename))
@@ -78,39 +74,14 @@ for filename in os.listdir(directory):
         t = df.Time.values
         left = df.Left_Forces.values
         right = df.Right_Forces.values
-        # back = df.Back_Forces.values
-        # front = df.Front_Forces.values
-        
-        # ar = simps(y=right, x=t)
-        # al = simps(y=left, x=t)
-        # fr = ar/t[-1]-t[0]
-        # fl = al/t[-1]-t[0]
-        
-        # diff = fl-fr
-        
-        # difference.append(diff)
-        
-        # use peak finder to find positions of peaks in total_force data
-        # returns the indicies of peaks
+
         peaks = peak_positions(tot)
         
-        # plot and save F(t) to count number of successful peaks
-        # and to view validity of data!
-        # fig, ax = plt.subplots()
-        # ax.plot(t, tot)
-        # ax.set_xlabel('Time (s)')
-        # ax.set_ylabel('Force (N)')
-        # ax.set_title('{}'.format(filename))
-        # ax.plot(t[peaks], tot[peaks], "x")
-        #image_name = filename[:-4] + '.png'
-        #plt.savefig(os.path.join(directory,image_name))#'{}.png'.format(filename[:-4]))
-        #plt.close()
+
 
         
         cycle_positions = gait_cycle_positions(peaks)
-        #print(filename, ':')
-        #print(cycle_positions)
-        #print('----------')
+
         
         for a, b in cycle_positions:
             area = simps(y=tot[a:b+1], x=t[a:b+1])
@@ -204,92 +175,3 @@ plt.xticks(fontsize= size)
 plt.yticks(fontsize= size)
 plt.show()
 
-# # y = a*x + b
-# # a = 1.05 pm 0.04
-# # b = 0.05 pm 0.05
-
-
-# # print(np.mean([0.60143, 0.60574]))
-
-"""
-
-files = [filename for filename in os.listdir(directory) if filename.endswith(".csv")]
-
-file = files[19]
-
-df = pd.read_csv(os.path.join(directory, file))
-
-# this turns df column to array
-tot = df.Total_Forces.values
-t = df.Time.values
-left = df.Left_Forces.values
-right = df.Right_Forces.values
-back = df.Back_Forces.values
-front = df.Front_Forces.values
-
-# plt.plot(t,back, color='r', label='left forces')
-# plt.plot(t,front, color='g',label='right forces')
-# plt.xlabel('t (s)', fontsize=14)
-# plt.ylabel('F(N)', fontsize=14)
-# a = 160
-# b = 520
-# plt.fill_between(t[a:b], tot[a:b], edgecolor='k', hatch="/", facecolor='cornflowerblue')
-# # plt.plot(t, [1.6*9.81]*len(t), '--', color='r')
-# plt.show()
-
-plt.plot(t,tot) # 100, 510
-plt.show()
-
-x = np.arange(0, 9)
-y = np.arange(0, 10)
-
-print(simps(y,x))
-
-idx = (np.abs(t - 8.0)).argmin()
-print(idx)
-
-# filename = '1.5kg_(13-04-2020)_11-13-03.csv'
-
-# mass = float(filename.split('kg')[0])
-
-# df = pd.read_csv(os.path.join(directory,filename))
-
-# # this turns df column to array
-# tot = df.Total_Forces.values
-# time = df.Time.values
-# left = df.Left_Forces.values
-# right = df.Right_Forces.values
-# back = df.Back_Forces.values
-# front = df.Front_Forces.values
-
-# peaks = peak_positions(tot)
-
-# plt.plot(tot)
-# plt.plot(peaks, tot[peaks], "x")
-# plt.show()
-
-
-# peaks, _ = find_peaks(tot, prominence=(1))
-
-
-"""
-# plt.plot(tot)
-# plt.plot(peaks, tot[peaks], "x")
-# plt.show()
-
-# a = peaks[-2]
-# b = peaks[-1]
-# integrand = tot[a:b+1]
-# area = simps(y=integrand, x=time[a:b+1])
-
-# mass=[]
-# for i in range(0,len(peaks)-2):
-#     print(i)
-#     a = peaks[i]
-#     b = peaks[i+2]
-#     area = simps(y=tot[a:b+1], x=time[a:b+1])
-#     mg = area/(time[b+1]-time[a])
-#     m = mg/9.81
-#     mass.append(m)
-# avg_mass = sum(mass)/len(mass)
-# print(avg_mass, 'kg')

@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[244]:
-
+"""Finds steps by searching for areas on the top of the force plate
+    which have collected the most number of data points"""
 import os
 import pandas as pd
 import numpy as np
@@ -12,20 +9,15 @@ from matplotlib._png import read_png
 from functools import reduce 
 from itertools import product
 
-
-# In[245]:
-
-
+# get calibrated data files
 directory = r'./Calibrated Data'
-   
 files = [f for f in os.listdir(directory) if f.endswith('.csv')]
+filename = files[12]
 
-
-# In[246]:
-
-
-filename = files[12]  
+# find mass from filename
 mass = float(filename.split('kg')[0])
+
+# read data
 df = pd.read_csv(os.path.join(directory,filename))
 tot = df.Total_Forces.values
 t = df.Time.values
@@ -34,17 +26,8 @@ front = df.Front_Forces.values
 calibrated_vals = [df.LC1.values,df.LC2.values,df.LC3.values,df.LC4.values]
 
 
-# In[247]:
 
-
-# plt.plot(t, right)
-# plt.plot(t, left)
-# plt.show()
-
-
-# In[248]:
-
-
+# Calculate COP
 x = (right)*(180/tot) # RIGHT = LC1 & 4
 y = (front)*(342/tot) # LEFT = LC3 & 4
 
@@ -66,17 +49,11 @@ for i in range(len(tot)):
             x[i] = np.nan
             y[i] = np.nan
 
-
-# In[249]:
-
-
-# picks out indicies where elements are nans
 x = x[np.logical_not(np.isnan(x))] 
 y = y[np.logical_not(np.isnan(y))] 
 
 
-# In[250]:
-
+# Plot COP
 
 # plt.plot(x, y, 'ro', markersize=3)
 # plt.xlabel('x (mm)', fontsize=13)
@@ -84,6 +61,9 @@ y = y[np.logical_not(np.isnan(y))]
 # plt.gca().set_aspect('equal', adjustable='box')
 # #plt.savefig("COP",dpi=300)
 # plt.show()
+
+
+# Plot 2D Histogram
 
 # plt.hist2d(x,y,15)
 # plt.xlabel('x (mm)', fontsize=13)
@@ -93,12 +73,9 @@ y = y[np.logical_not(np.isnan(y))]
 # #plt.savefig("COP-heat",dpi=300)
 
 
-# In[251]:
-
-
+# Histogram
 bin_val = 12
-arr, bx ,by =np.histogram2d(x,y,bins=bin_val)
-#print(arr)
+arr, bx ,by = np.histogram2d(x,y,bins=bin_val)
 
 coord_val = [(i,j,arr[i,j]) for i,j in product(range(len(arr)),range(len(arr[0])))]
 # i, j = bin index of bin array
@@ -118,6 +95,7 @@ significant_coord = list(filter(lambda x: x[2]>=cut_off_val, coord_val_sorted))
 # filter keeps items that return True on input condition
 # filter takes two args (cond, data)
 # x[2] is histogram frequency
+# This finds the coordinates of bins which have highest frequencies
  
 # print(significant_coord)    
 # print(bx)
@@ -125,9 +103,8 @@ significant_coord = list(filter(lambda x: x[2]>=cut_off_val, coord_val_sorted))
 # bx, by are x, y bin start and end values
 
 
-# In[252]:
 
-
+# Dimensions of Force Plate
 height = 342
 width = 180
 
@@ -145,8 +122,6 @@ def index_to_pos(entry):
 significant_pos =  list(map(index_to_pos, significant_coord))
 # map takes in a function and its possible arguments then retuns a list with the outputs
 
-
-# In[253]:
 
 
 def gen_bound(i,j):
@@ -172,28 +147,6 @@ for i, j, number in significant_coord:
     x_y_selected = list(filter(lambda xy : (lx<=xy[0]<=hx)and (ly<=xy[1]<=hy),x_y))
     # look at all orginal data and find the data points that fall within the physical 'box' as found by significant coord
 
-    """
-    ex = []
-    wy = []
-    tu = []
-    
-    for i in range(len(x_y_selected)):
-            ex.append(x_y_selected[i][0])
-            wy.append(x_y_selected[i][1])
-            tu.append(x_y_selected[i][2])
-    
-            
-    ex=np.array(ex)
-    wy=np.array(wy)
-    tu = np.array(tu)
-    
-    
-    print('x mean {}, x std {}'.format(np.mean(ex), np.std(ex)))
-    print('y mean {}, y std {}'.format(np.mean(wy), np.std(wy)))
-    print('t mean {}, t std {}'.format(np.mean(tu), np.std(tu)))
-    
-    """
-
     num_points = len(x_y_selected)
     # how many fall within above box
     
@@ -206,12 +159,8 @@ for i, j, number in significant_coord:
     
     steps.append((x_ave,y_ave,t_ave))
     
-#print(steps)
 
-
-# In[254]:
-
-
+# Plot steps
 fig = plt.gcf()
 fig.clf()
 ax = plt.subplot(111)
@@ -232,11 +181,9 @@ plt.xlabel('x (mm)', fontsize=13)
 plt.ylabel('y (mm)', fontsize=13)
 plt.gca().set_aspect('equal', adjustable='box')
 plt.draw()
-#plt.savefig("FirstGo",dpi=300)
+#plt.savefig("Steps",dpi=300)
 plt.show()
 
-
-# In[ ]:
 
 # #Sort by time
 # steps = sorted(steps, key = lambda x:x[2], reverse=False)
