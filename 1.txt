@@ -1,3 +1,0 @@
-git add --all (or git add .'
-git commit -m "message here"
-git push
