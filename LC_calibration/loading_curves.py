@@ -8,7 +8,7 @@ LC1 = read_csv('LC1.csv')
 LC2 = read_csv('LC2.csv')
 LC3 = read_csv('LC3.csv')
 LC4 = read_csv('LC4.csv')
-
+LC4_extra = read_csv('LC4_Higher_Weights.csv')
 
 
 
@@ -18,7 +18,7 @@ def values(df, column):
     col_data = df[column]    
     
     # replace FALSE s with NaN s then delete NaNs
-    z = col_data.replace(to_replace='False', value=np.nan).dropna().map(float)
+    z = col_data.replace(to_replace=('FALSE','False'), value=np.nan).dropna().map(float)
     
     # calculate 'gradient' change
     z_der = np.asarray([z.iloc[i+1]-z.iloc[i] for i in range(len(z)-1)])
@@ -32,11 +32,21 @@ def values(df, column):
     # remove last 
     z_new = np.delete(z_new, -1)
     
+    print(len(col_data)-len(z_new))
+    
     # calculate graph data
     mean = np.average(z_new)
     std = np.std(z_new)
     
     return column, z, z_new, mean, std
+
+size = 13
+p=LC2.iloc[:,16].replace(to_replace=('FALSE','False'), value=np.nan).map(float)
+plt.xlabel('Time (s)', size=size)
+plt.ylabel('Raw voltage output (mV)', size=size)
+plt.xticks(fontsize= size)
+plt.yticks(fontsize= size)
+plt.plot(np.array(list(range(0,len(p))))/80,p, linewidth=2, color='r') # 29 errors
 
 """
 # plots each column in df after filtering to check
@@ -123,6 +133,8 @@ def plotting_data(LC):
 #----------------------------------------------------------------
 # x- are masses
 # y- are the load cell outputs
+
+
 """LC1"""
 x1, y1, std_dev1 = plotting_data(LC1)
 x1 = x1/1E3
@@ -146,38 +158,66 @@ slope4, intercept4, r_value4, p_value4, std_error4 = linregress(list(map(float,
                                                     x4)), list(map(float, y4)))
 
 # uncomment for all plots on 1 graph
-"""
+
 # LC1 plot
+# plt.errorbar(x1, y1, yerr=std_dev1, fmt='o',
+#              capsize=2, color='gold')
+# plt.plot(x1, intercept1 + slope1*x1, '-',
+#          color='gold', label='LC1: y={:.4}x + {:.4}'.format(slope1,intercept1))
+# plt.xlabel('Mass (kg)')
+# plt.ylabel('Output (mV)')
+# # LC2 plot
+# plt.errorbar(x2, y2, yerr=std_dev2, fmt='o',
+#              capsize=2, color='cornflowerblue')
+# plt.plot(x2, intercept2 + slope2*x2,
+#          color='cornflowerblue', linestyle='-' ,
+#          label='LC2: y={:.4}x + {:.4}'.format(slope2,intercept2))
+# # LC3 plot
+# plt.errorbar(x3, y3, yerr=std_dev3, fmt='o',
+#              capsize=2, color='yellowgreen')
+# plt.plot(x3, intercept3 + slope3*x3,'-', 
+#          color='yellowgreen',label='LC3: y={:.4}x + {:.4}'.format(slope3,intercept3))
+# #
+# # LC4 plot
+# plt.errorbar(x4, y4, yerr=std_dev4, fmt='o',
+#              capsize=2, color='tomato')
+# plt.plot(x4, intercept4 + slope4*x4, '-',
+#          color='tomato',label='LC4: y={:.4}x + {:.4}'.format(slope4,intercept4))
+
+# plt.legend(loc = 'upper left')
+# plt.show()    
+
+size=12
 plt.errorbar(x1, y1, yerr=std_dev1, fmt='o',
              capsize=2, color='gold')
-plt.plot(x1, intercept1 + slope1*x1, '--',
-         color='gold', label='LC1: y={:.4}x + {:.4}'.format(slope1,intercept1))
-plt.xlabel('Mass (kg)')
-plt.ylabel('Output (mV)')
+plt.plot(x1, intercept1 + slope1*x1, '-',
+         color='gold', label='Load cell 1')
+plt.xlabel('Force (N)', size=size)
+plt.ylabel('Load cell output (mV)', size=size)
 # LC2 plot
 plt.errorbar(x2, y2, yerr=std_dev2, fmt='o',
              capsize=2, color='cornflowerblue')
 plt.plot(x2, intercept2 + slope2*x2,
-         color='cornflowerblue', linestyle='dashed' ,
-         label='LC2: y={:.4}x + {:.4}'.format(slope2,intercept2))
+         color='cornflowerblue', linestyle='-' ,
+         label='Load cell 2')
 # LC3 plot
 plt.errorbar(x3, y3, yerr=std_dev3, fmt='o',
              capsize=2, color='yellowgreen')
-plt.plot(x3, intercept3 + slope3*x3,'--', 
-         color='yellowgreen',label='LC3: y={:.4}x + {:.4}'.format(slope3,intercept3))
+plt.plot(x3, intercept3 + slope3*x3,'-', 
+         color='yellowgreen',label='Load cell 3')
 #
 # LC4 plot
 plt.errorbar(x4, y4, yerr=std_dev4, fmt='o',
              capsize=2, color='tomato')
-plt.plot(x4, intercept4 + slope4*x4, '--',
-         color='tomato',label='LC4: y={:.4}x + {:.4}'.format(slope4,intercept4))
-
-plt.legend()
+plt.plot(x4, intercept4 + slope4*x4, '-',
+         color='tomato',label='Load cell 4')
+plt.xticks(fontsize= size)
+plt.yticks(fontsize= size)
+plt.legend(loc = 'upper left', prop={'size': 10})
 plt.show()    
+
+
 """
-
-
-
 fig, axs = plt.subplots(2,2, figsize=(20, 10))
 axs[0,0].errorbar(x1, y1, yerr=std_dev1, fmt='o',
              capsize=2, color='gold')
@@ -225,3 +265,4 @@ plt.savefig('Loading_Curves.png', bbox_inches='tight')
 # print('std_error2 =', std_error2)
 # print('std_error3 =', std_error3)
 # print('std_error4 =', std_error4)
+"""

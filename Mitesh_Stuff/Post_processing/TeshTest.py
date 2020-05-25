@@ -212,34 +212,34 @@ for i, j, number in significant_coord:
 # In[254]:
 
 
-# fig = plt.gcf()
-# fig.clf()
-# ax = plt.subplot(111)
+fig = plt.gcf()
+fig.clf()
+ax = plt.subplot(111)
 
-# feet_img = read_png("feet.PNG")
+feet_img = read_png("feet.PNG")
 
-# imagebox = OffsetImage(feet_img,zoom=.015)
+imagebox = OffsetImage(feet_img,zoom=.015)
 
-# for step in steps:
-#     x,y,t=step
-#     ab = AnnotationBbox(imagebox,step[:2],xybox=(-2., 4.),xycoords='data',boxcoords="offset points") 
-#     ax.add_artist(ab)
-#     ax.annotate(f"( ({x:.1f},{y:.1f}); time: {t:.2f}s", xy = step[:2], xytext =(step[0]+10,step[1]))
+for step in steps:
+    x,y,t=step
+    ab = AnnotationBbox(imagebox,step[:2],xybox=(-2., 4.),xycoords='data',boxcoords="offset points") 
+    ax.add_artist(ab)
+    ax.annotate(f"( ({x:.1f},{y:.1f}); time: {t:.2f}s", xy = step[:2], xytext =(step[0]+10,step[1]))
 
-# plt.xlim([-10,180])
-# plt.ylim([-50, 380])
-# plt.xlabel('x (mm)', fontsize=13)
-# plt.ylabel('y (mm)', fontsize=13)
-# plt.gca().set_aspect('equal', adjustable='box')
-# plt.draw()
-# #plt.savefig("FirstGo",dpi=300)
-# plt.show()
+plt.xlim([-10,180])
+plt.ylim([-50, 380])
+plt.xlabel('x (mm)', fontsize=13)
+plt.ylabel('y (mm)', fontsize=13)
+plt.gca().set_aspect('equal', adjustable='box')
+plt.draw()
+#plt.savefig("FirstGo",dpi=300)
+plt.show()
 
 
 # In[ ]:
 
-#Sort by time
-steps = sorted(steps, key = lambda x:x[2], reverse=False)
-speed = (len(steps)-1)*60/(steps[-1][2]-steps[0][2]) # [steps/min]
+# #Sort by time
+# steps = sorted(steps, key = lambda x:x[2], reverse=False)
+# speed = (len(steps)-1)*60/(steps[-1][2]-steps[0][2]) # [steps/min]
 
 

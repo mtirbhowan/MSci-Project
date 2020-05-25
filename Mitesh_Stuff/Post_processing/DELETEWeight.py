@@ -33,14 +33,14 @@ def gait_cycle_positions(peaks):
         
         For N<3, gait_cycle_bounds = []"""
     
-    N = len(peaks) # number of peaks
+#    N = len(peaks) # number of peaks
     
-    gait_cycle_bounds = []
+    gait_cycle_bounds = [peaks[0], peaks[-1]]
     
-    for i in range(0, N-2): # need i to go from 0 to N-3 (so range N-2)
+    # for i in range(0, N-2): # need i to go from 0 to N-3 (so range N-2)
         
-        interval = [peaks[i], peaks[i+2]]
-        gait_cycle_bounds.append(interval)
+    #     interval = [peaks[i], peaks[i+2]]
+    #     gait_cycle_bounds.append(interval)
     
     return gait_cycle_bounds
 
@@ -94,59 +94,50 @@ for filename in os.listdir(directory):
         # returns the indicies of peaks
         peaks = peak_positions(tot)
         
-        # plot and save F(t) to count number of successful peaks
-        # and to view validity of data!
-        # fig, ax = plt.subplots()
-        # ax.plot(t, tot)
-        # ax.set_xlabel('Time (s)')
-        # ax.set_ylabel('Force (N)')
-        # ax.set_title('{}'.format(filename))
-        # ax.plot(t[peaks], tot[peaks], "x")
-        #image_name = filename[:-4] + '.png'
-        #plt.savefig(os.path.join(directory,image_name))#'{}.png'.format(filename[:-4]))
-        #plt.close()
 
         
         cycle_positions = gait_cycle_positions(peaks)
         #print(filename, ':')
         #print(cycle_positions)
         #print('----------')
+        a = cycle_positions[0]
+        b = cycle_positions[1]
         
-        for a, b in cycle_positions:
-            area = simps(y=tot[a:b+1], x=t[a:b+1])
-            mg = area/(t[b+1]-t[a])
-            m = mg/9.807
+
+        area = simps(y=tot[a:b+1], x=t[a:b+1])
+        mg = area/(t[b+1]-t[a])
+        m = mg/9.807
             
-            if mass == 0.5:
-                m_05.append(m)
-                accuracy = abs((m-0.5)*100/m)
-                acc.append(accuracy)
-                error = m-0.5
-                err.append(error)
-            elif mass ==1.0:
-                m_10.append(m)
-                accuracy = abs((m-1.0)*100/m)
-                acc.append(accuracy)
-                error = m-1.0
-                err.append(error)
-                #print('1:', m)
-            elif mass ==1.5:
-                accuracy = abs((m-1.5)*100/m)
-                acc.append(accuracy)
-                #print('1.5:', m)
-                m_15.append(m)
-                error = m-1.5
-                err.append(error)
-            elif mass ==2.0:
-                accuracy = abs((m-2.0)*100/m)
-                acc.append(accuracy)
-                #print('2.0:', m)
-                m_20.append(m)
-                error = m-2.0
-                err.append(error)
+        if mass == 0.5:
+            m_05.append(m)
+            accuracy = abs((m-0.5)*100/m)
+            acc.append(accuracy)
+            error = m-0.5
+            err.append(error)
+        elif mass ==1.0:
+            m_10.append(m)
+            accuracy = abs((m-1.0)*100/m)
+            acc.append(accuracy)
+            error = m-1.0
+            err.append(error)
+            #print('1:', m)
+        elif mass ==1.5:
+            accuracy = abs((m-1.5)*100/m)
+            acc.append(accuracy)
+            #print('1.5:', m)
+            m_15.append(m)
+            error = m-1.5
+            err.append(error)
+        elif mass ==2.0:
+            accuracy = abs((m-2.0)*100/m)
+            acc.append(accuracy)
+            #print('2.0:', m)
+            m_20.append(m)
+            error = m-2.0
+            err.append(error)
             print('-------')
-    else:
-        continue
+        else:
+            continue
 
 # difference = np.array(difference)
 # plt.hist(difference, bins=38)
@@ -159,14 +150,14 @@ plt.show()
 
 size = 13
 err = np.array(err)
-plt.hist(err,bins=np.arange(-0.5, 1,0.05), edgecolor='black', color='cornflowerblue')
+plt.hist(err,bins=np.arange(-0.3, 0.7, 0.05), edgecolor='black', color='cornflowerblue')
 plt.xlabel('Error (kg)', size=size)
 plt.ylabel('Frequency', size=size)
 plt.xticks(fontsize= size)
 plt.yticks(fontsize= size)
 plt.show()
 
-len(np.where(acc<23)[0])
+len(np.where(acc<25)[0])
 print(8*100/342)
 
 m_05 = np.array(m_05)
